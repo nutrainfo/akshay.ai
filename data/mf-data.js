@@ -26,6 +26,6 @@ const MF_DATA = [
   { name:'Quant Active Fund Direct-Growth', amc:'Quant MF', cat:'equity', risk:'vhigh', ret1:32.5, ret3:28.5, ret5:35.0, aum:'₹8,500 Cr', growwSlug:'quant-active-fund-direct-plan-growth' },
 ];
 
-function getGrowwLink(slug) {
-  return `https://groww.in/mutual-funds/${slug}`;
+function getGrowwLink(name) {
+  return `https://groww.in/mutual-funds/search?q=${encodeURIComponent(name)}`;
 }
