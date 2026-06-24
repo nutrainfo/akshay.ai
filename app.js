@@ -17,29 +17,65 @@ const App = {
 };
 
 /* ============================================================
+   PREMIUM SVG ICON LIBRARY
+   ============================================================ */
+const ICONS = {
+  sip: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+  'step-sip': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h4v-6H3v6zM9 20h4v-10H9v10zM15 20h4v-14h-4v14z"/><path d="M3 9l5-5 4 4 5-5"/></svg>`,
+  lumpsum: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/><path d="M8.5 10.5c.5-1.5 2-2.5 3.5-2.5 2 0 3.5 1.5 3.5 3 0 3-7 3-7 6 0 1.5 1.5 3 3.5 3 1.5 0 2.8-.7 3.5-2"/><line x1="12" y1="6" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg>`,
+  swp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 3 12"/><path d="M3 12V6h6"/><path d="M3 16l3-3-3-3"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="14"/></svg>`,
+  'sip-vs-lumpsum': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M3 9l4-4 4 4"/><path d="M3 15l4 4 4-4"/><path d="M13 6l4 4 4-4"/><path d="M13 12l4 4 4-4"/></svg>`,
+  'sip-goal': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg>`,
+  'sip-ladder': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="16" y2="21"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="17" x2="16" y2="17"/></svg>`,
+  'home-loan': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>`,
+  'car-loan': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="11" width="22" height="7" rx="2"/><path d="M5 11l2-5h10l2 5"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><line x1="3" y1="15" x2="3" y2="15"/></svg>`,
+  'edu-loan': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>`,
+  prepayment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M9 15h1"/><path d="M12 15h4"/><path d="M17 7l2 2-2 2"/></svg>`,
+  fd: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><path d="M8 9v2"/><path d="M12 9v2"/><path d="M16 9v2"/><path d="M7 14h2v3H7z"/><path d="M11 14h2v3h-2z"/><path d="M15 14h2v3h-2z"/></svg>`,
+  rd: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14l2 2 4-4"/></svg>`,
+  ppf: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7z"/><path d="M12 22V12"/><path d="M3 7l9 5 9-5"/><path d="M9 4l3 1.5L15 4"/></svg>`,
+  tax: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="9" x2="11" y2="9"/></svg>`,
+  'income-tax': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
+  'capital-gains': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  nps: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>`,
+  retirement: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/><path d="M8 14l-2 7"/><path d="M16 14l2 7"/><line x1="6" y1="21" x2="18" y2="21"/></svg>`,
+  'child-edu': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/><circle cx="18" cy="4" r="2"/></svg>`,
+  /* Quick strip icons */
+  'quick-sip': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+  'quick-emi': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>`,
+  'quick-fd': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><path d="M7 14h2v3H7z"/><path d="M11 14h2v3h-2z"/><path d="M15 14h2v3h-2z"/></svg>`,
+  'quick-tax': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
+};
+
+function getIcon(id, size = 28) {
+  const svg = ICONS[id] || ICONS['fd'];
+  return svg.replace('<svg ', `<svg width="${size}" height="${size}" `);
+}
+
+/* ============================================================
    CALCULATOR REGISTRY
    ============================================================ */
 const CALCULATORS = [
-  { id:'sip', name:'SIP Calculator', icon:'📈', cat:'investment', desc:'Monthly SIP with CAGR, contribution schedule & tax returns' },
-  { id:'step-sip', name:'Step-up SIP', icon:'📊', cat:'investment', desc:'SIP with annual step-up percentage' },
-  { id:'lumpsum', name:'Lumpsum Investment', icon:'💰', cat:'investment', desc:'One-time investment growth with CAGR' },
-  { id:'swp', name:'SWP Calculator', icon:'🔄', cat:'investment', desc:'Systematic Withdrawal Plan longevity & corpus depletion' },
-  { id:'sip-vs-lumpsum', name:'SIP vs Lumpsum', icon:'⚖️', cat:'investment', desc:'Side-by-side comparison of SIP and Lumpsum strategies' },
-  { id:'sip-goal', name:'SIP Goal Planner', icon:'🎯', cat:'investment', desc:'Required monthly SIP to reach target corpus' },
-  { id:'sip-ladder', name:'SIP Ladder Planner', icon:'🏗️', cat:'investment', desc:'Multi-SIP instrument planner with total projection' },
-  { id:'home-loan', name:'Home Loan EMI', icon:'🏠', cat:'loan', desc:'EMI, amortization schedule & prepayment impact' },
-  { id:'car-loan', name:'Car Loan EMI', icon:'🚗', cat:'loan', desc:'Car loan EMI with full amortization table' },
-  { id:'edu-loan', name:'Education Loan EMI', icon:'🎓', cat:'loan', desc:'Education loan with moratorium period support' },
-  { id:'prepayment', name:'Prepayment Calculator', icon:'💳', cat:'loan', desc:'Impact of extra payments on loan tenure & interest saved' },
-  { id:'fd', name:'FD Calculator', icon:'🏦', cat:'savings', desc:'FD maturity with compounding frequency & TDS deduction' },
-  { id:'rd', name:'RD Calculator', icon:'📅', cat:'savings', desc:'Recurring deposit maturity value' },
-  { id:'ppf', name:'PPF Calculator', icon:'📋', cat:'savings', desc:'PPF 15-year maturity with annual contribution' },
-  { id:'tax', name:'Old vs New Tax Regime', icon:'🧾', cat:'tax', desc:'Compare old & new income tax regimes for FY 2024-25' },
-  { id:'income-tax', name:'Income Tax Estimator', icon:'💼', cat:'tax', desc:'Salary, HRA, LTA and deduction-based tax calculator' },
-  { id:'capital-gains', name:'Capital Gains Tax', icon:'📉', cat:'tax', desc:'STCG & LTCG for equity, debt and real estate' },
-  { id:'nps', name:'NPS Calculator', icon:'🛡️', cat:'retirement', desc:'NPS Tier I corpus with tax savings and annuity projection' },
-  { id:'retirement', name:'Retirement Corpus', icon:'🧓', cat:'retirement', desc:'Inflation-adjusted retirement corpus & required SIP' },
-  { id:'child-edu', name:'Child Education Planner', icon:'👶', cat:'investment', desc:'Future cost of education with required SIP' },
+  { id:'sip', name:'SIP Calculator', cat:'investment', desc:'Monthly SIP with CAGR, contribution schedule & tax returns' },
+  { id:'step-sip', name:'Step-up SIP', cat:'investment', desc:'SIP with annual step-up percentage' },
+  { id:'lumpsum', name:'Lumpsum Investment', cat:'investment', desc:'One-time investment growth with CAGR' },
+  { id:'swp', name:'SWP Calculator', cat:'investment', desc:'Systematic Withdrawal Plan longevity & corpus depletion' },
+  { id:'sip-vs-lumpsum', name:'SIP vs Lumpsum', cat:'investment', desc:'Side-by-side comparison of SIP and Lumpsum strategies' },
+  { id:'sip-goal', name:'SIP Goal Planner', cat:'investment', desc:'Required monthly SIP to reach target corpus' },
+  { id:'sip-ladder', name:'SIP Ladder Planner', cat:'investment', desc:'Multi-SIP instrument planner with total projection' },
+  { id:'home-loan', name:'Home Loan EMI', cat:'loan', desc:'EMI, amortization schedule & prepayment impact' },
+  { id:'car-loan', name:'Car Loan EMI', cat:'loan', desc:'Car loan EMI with full amortization table' },
+  { id:'edu-loan', name:'Education Loan EMI', cat:'loan', desc:'Education loan with moratorium period support' },
+  { id:'prepayment', name:'Prepayment Calculator', cat:'loan', desc:'Impact of extra payments on loan tenure & interest saved' },
+  { id:'fd', name:'FD Calculator', cat:'savings', desc:'FD maturity with compounding frequency & TDS deduction' },
+  { id:'rd', name:'RD Calculator', cat:'savings', desc:'Recurring deposit maturity value' },
+  { id:'ppf', name:'PPF Calculator', cat:'savings', desc:'PPF 15-year maturity with annual contribution' },
+  { id:'tax', name:'Old vs New Tax Regime', cat:'tax', desc:'Compare old & new income tax regimes for FY 2024-25' },
+  { id:'income-tax', name:'Income Tax Estimator', cat:'tax', desc:'Salary, HRA, LTA and deduction-based tax calculator' },
+  { id:'capital-gains', name:'Capital Gains Tax', cat:'tax', desc:'STCG & LTCG for equity, debt and real estate' },
+  { id:'nps', name:'NPS Calculator', cat:'retirement', desc:'NPS Tier I corpus with tax savings and annuity projection' },
+  { id:'retirement', name:'Retirement Corpus', cat:'retirement', desc:'Inflation-adjusted retirement corpus & required SIP' },
+  { id:'child-edu', name:'Child Education Planner', cat:'investment', desc:'Future cost of education with required SIP' },
 ];
 
 /* ============================================================
@@ -150,10 +186,10 @@ function renderCalcGrid(filter = 'all', search = '') {
     (c.name.toLowerCase().includes(search) || c.desc.toLowerCase().includes(search))
   );
   grid.innerHTML = filtered.map(c => `
-    <div class="calc-card reveal" role="listitem" tabindex="0"
+    <div class="calc-card reveal" role="listitem" tabindex="0" data-cat="${c.cat}"
          onclick="openCalc('${c.id}')" onkeydown="if(event.key==='Enter')openCalc('${c.id}')"
          aria-label="${c.name}">
-      <div class="calc-icon">${c.icon}</div>
+      <div class="calc-icon">${getIcon(c.id)}</div>
       <span class="calc-tag tag-${c.cat}">${c.cat}</span>
       <h3>${c.name}</h3>
       <p>${c.desc}</p>
