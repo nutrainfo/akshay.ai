@@ -19,12 +19,13 @@ const YF = {
 };
 
 /* Fallback values shown when every upstream fetch fails */
+/* Fallback values — June 2026 approximate levels */
 const FALLBACK = {
-  NIFTY50: { price: 24500, change: 0,   changePct: 0 },
-  SENSEX:  { price: 80500, change: 0,   changePct: 0 },
-  GOLD:    { price: 73500, change: 0,   changePct: 0 },
-  SILVER:  { price: 91000, change: 0,   changePct: 0 },
-  USDINR:  { price: 84.5,  change: 0,   changePct: 0 },
+  NIFTY50: { price: 26200,  change: 0, changePct: 0 },
+  SENSEX:  { price: 86000,  change: 0, changePct: 0 },
+  GOLD:    { price: 96000,  change: 0, changePct: 0 }, /* ₹/10g MCX */
+  SILVER:  { price: 102000, change: 0, changePct: 0 }, /* ₹/kg  MCX */
+  USDINR:  { price: 86.2,   change: 0, changePct: 0 },
 };
 
 async function fetchYahooQuote(symbol) {

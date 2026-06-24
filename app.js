@@ -70,7 +70,7 @@ const CALCULATORS = [
   { id:'fd', name:'FD Calculator', cat:'savings', desc:'FD maturity with compounding frequency & TDS deduction' },
   { id:'rd', name:'RD Calculator', cat:'savings', desc:'Recurring deposit maturity value' },
   { id:'ppf', name:'PPF Calculator', cat:'savings', desc:'PPF 15-year maturity with annual contribution' },
-  { id:'tax', name:'Old vs New Tax Regime', cat:'tax', desc:'Compare old & new income tax regimes for FY 2025-26' },
+  { id:'tax', name:'Old vs New Tax Regime', cat:'tax', desc:'Compare old & new income tax regimes for FY 2026-27' },
   { id:'income-tax', name:'Income Tax Estimator', cat:'tax', desc:'Salary, HRA, LTA and deduction-based tax calculator' },
   { id:'capital-gains', name:'Capital Gains Tax', cat:'tax', desc:'STCG & LTCG for equity, debt and real estate' },
   { id:'nps', name:'NPS Calculator', cat:'retirement', desc:'NPS Tier I corpus with tax savings and annuity projection' },
@@ -887,7 +887,7 @@ function calcLive(id) {
       set('tx-new-taxable', fmt(newRes.taxableIncome));
       const better = oldRes.tax <= newRes.tax ? 'Old Regime saves ' + fmt(newRes.tax - oldRes.tax) : 'New Regime saves ' + fmt(oldRes.tax - newRes.tax);
       set('tx-better', better);
-      set('tx-explain', `FY 2025-26 — Old Regime Tax: ${fmt(oldRes.tax)} on taxable income of ${fmt(oldRes.taxableIncome)}. New Regime Tax: ${fmt(newRes.tax)} on ${fmt(newRes.taxableIncome)}. ${better}. New regime (Budget 2025): zero tax up to ₹12.75L gross; slabs 5%–30% from ₹4L. Old regime: standard deduction ₹50k + 80C/80D deductions.`);
+      set('tx-explain', `FY 2026-27 — Old Regime Tax: ${fmt(oldRes.tax)} on taxable income of ${fmt(oldRes.taxableIncome)}. New Regime Tax: ${fmt(newRes.tax)} on ${fmt(newRes.taxableIncome)}. ${better}. New regime: zero tax up to ₹12.75L gross; slabs 5%–30% from ₹4L; 87A rebate ₹60k. Old regime: standard deduction ₹50k + 80C/80D deductions.`);
       break;
     }
     case 'income-tax': {
@@ -1228,11 +1228,11 @@ function renderMF(cat, search = '') {
    MARKETS — LIVE DATA (Fallback mock with realistic values)
    ============================================================ */
 const MARKET_SEEDS = {
-  NIFTY50: { base: 24500, name: 'NIFTY 50', priceId: 'mc-nifty-price', chgId: 'mc-nifty-chg', tickerId: 't-nifty', tickerChgId: 't-nifty-chg', histId: 'NIFTY50' },
-  SENSEX:  { base: 80500, name: 'SENSEX', priceId: 'mc-sensex-price', chgId: 'mc-sensex-chg', tickerId: 't-sensex', tickerChgId: 't-sensex-chg', histId: 'SENSEX' },
-  GOLD:    { base: 73500, name: 'GOLD', priceId: 'mc-gold-price', chgId: 'mc-gold-chg', tickerId: 't-gold', tickerChgId: 't-gold-chg', histId: 'GOLD' },
-  SILVER:  { base: 91000, name: 'SILVER', priceId: 'mc-silver-price', chgId: 'mc-silver-chg', tickerId: 't-silver', tickerChgId: 't-silver-chg', histId: 'SILVER' },
-  USDINR:  { base: 84.5 },
+  NIFTY50: { base: 26200, name: 'NIFTY 50', priceId: 'mc-nifty-price', chgId: 'mc-nifty-chg', tickerId: 't-nifty', tickerChgId: 't-nifty-chg', histId: 'NIFTY50' },
+  SENSEX:  { base: 86000, name: 'SENSEX', priceId: 'mc-sensex-price', chgId: 'mc-sensex-chg', tickerId: 't-sensex', tickerChgId: 't-sensex-chg', histId: 'SENSEX' },
+  GOLD:    { base: 96000, name: 'GOLD', priceId: 'mc-gold-price', chgId: 'mc-gold-chg', tickerId: 't-gold', tickerChgId: 't-gold-chg', histId: 'GOLD' },
+  SILVER:  { base: 102000, name: 'SILVER', priceId: 'mc-silver-price', chgId: 'mc-silver-chg', tickerId: 't-silver', tickerChgId: 't-silver-chg', histId: 'SILVER' },
+  USDINR:  { base: 86.2 },
 };
 
 function initMarkets() {

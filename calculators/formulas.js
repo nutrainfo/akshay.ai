@@ -82,7 +82,7 @@ const FC = (() => {
     return Infinity;
   }
 
-  /* ---- Income Tax (FY 2025-26) ---- */
+  /* ---- Income Tax (FY 2026-27, Budget 2025 slabs continued) ---- */
   function taxOldRegime(income, deductions = {}) {
     const ch80c = Math.min(deductions.sec80c || 0, 150000);
     const ch80d = Math.min(deductions.sec80d || 0, 75000);
@@ -105,7 +105,7 @@ const FC = (() => {
   }
 
   function taxNewRegime(income) {
-    /* Budget 2025: new regime slabs effective FY 2025-26 */
+    /* New regime slabs (FY 2026-27) */
     const stdDeduction = 75000;
     const taxableIncome = Math.max(0, income - stdDeduction);
 
