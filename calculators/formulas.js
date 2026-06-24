@@ -82,7 +82,7 @@ const FC = (() => {
     return Infinity;
   }
 
-  /* ---- Income Tax (FY 2024-25) ---- */
+  /* ---- Income Tax (FY 2025-26) ---- */
   function taxOldRegime(income, deductions = {}) {
     const ch80c = Math.min(deductions.sec80c || 0, 150000);
     const ch80d = Math.min(deductions.sec80d || 0, 75000);
@@ -105,11 +105,20 @@ const FC = (() => {
   }
 
   function taxNewRegime(income) {
+    /* Budget 2025: new regime slabs effective FY 2025-26 */
     const stdDeduction = 75000;
     const taxableIncome = Math.max(0, income - stdDeduction);
 
     let tax = 0;
-    const slabs = [[300000,0],[600000,0.05],[900000,0.10],[1200000,0.15],[1500000,0.20],[Infinity,0.30]];
+    const slabs = [
+      [400000, 0],
+      [800000, 0.05],
+      [1200000, 0.10],
+      [1600000, 0.15],
+      [2000000, 0.20],
+      [2400000, 0.25],
+      [Infinity, 0.30],
+    ];
     let prev = 0;
     for (const [limit, rate] of slabs) {
       if (taxableIncome > prev) {
@@ -118,7 +127,8 @@ const FC = (() => {
       }
     }
 
-    const rebate87A = taxableIncome <= 700000 ? Math.min(tax, 25000) : 0;
+    /* 87A rebate: ₹60,000 for taxable income ≤ ₹12L → zero tax up to ₹12.75L gross */
+    const rebate87A = taxableIncome <= 1200000 ? Math.min(tax, 60000) : 0;
     const taxAfterRebate = Math.max(0, tax - rebate87A);
     const cess = taxAfterRebate * 0.04;
     return { taxableIncome, tax: taxAfterRebate + cess, regime: 'new' };
@@ -161,21 +171,22 @@ const FC = (() => {
     return targetCorpus / (((Math.pow(1 + r, n) - 1) / r) * (1 + r));
   }
 
-  /* ---- Capital Gains ---- */
+  /* ---- Capital Gains (Budget 2024 rates, effective 23 Jul 2024) ---- */
   function capitalGains(buyPrice, sellPrice, units, holdingMonths, assetType) {
     const gain = (sellPrice - buyPrice) * units;
-    const isLongTerm = assetType === 'equity' ? holdingMonths >= 12 : holdingMonths >= 36;
+    const isLongTerm = assetType === 'equity' ? holdingMonths >= 12 : holdingMonths >= 24;
     let tax = 0, exemption = 0;
 
     if (assetType === 'equity') {
       if (isLongTerm) {
-        exemption = 100000;
-        tax = Math.max(0, gain - exemption) * 0.10;
+        exemption = 125000; /* ₹1.25L LTCG exemption (Budget 2024) */
+        tax = Math.max(0, gain - exemption) * 0.125; /* 12.5% LTCG (Budget 2024) */
       } else {
-        tax = gain > 0 ? gain * 0.15 : 0;
+        tax = gain > 0 ? gain * 0.20 : 0; /* 20% STCG (Budget 2024) */
       }
     } else {
-      tax = gain > 0 ? gain * 0.20 : 0;
+      /* Debt: LTCG 12.5% without indexation; STCG at slab rate (est. 30%) */
+      tax = gain > 0 ? gain * (isLongTerm ? 0.125 : 0.30) : 0;
     }
 
     return { gain, isLongTerm, tax, netGain: gain - tax, exemption };

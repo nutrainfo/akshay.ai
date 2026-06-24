@@ -70,7 +70,7 @@ const CALCULATORS = [
   { id:'fd', name:'FD Calculator', cat:'savings', desc:'FD maturity with compounding frequency & TDS deduction' },
   { id:'rd', name:'RD Calculator', cat:'savings', desc:'Recurring deposit maturity value' },
   { id:'ppf', name:'PPF Calculator', cat:'savings', desc:'PPF 15-year maturity with annual contribution' },
-  { id:'tax', name:'Old vs New Tax Regime', cat:'tax', desc:'Compare old & new income tax regimes for FY 2024-25' },
+  { id:'tax', name:'Old vs New Tax Regime', cat:'tax', desc:'Compare old & new income tax regimes for FY 2025-26' },
   { id:'income-tax', name:'Income Tax Estimator', cat:'tax', desc:'Salary, HRA, LTA and deduction-based tax calculator' },
   { id:'capital-gains', name:'Capital Gains Tax', cat:'tax', desc:'STCG & LTCG for equity, debt and real estate' },
   { id:'nps', name:'NPS Calculator', cat:'retirement', desc:'NPS Tier I corpus with tax savings and annuity projection' },
@@ -887,7 +887,7 @@ function calcLive(id) {
       set('tx-new-taxable', fmt(newRes.taxableIncome));
       const better = oldRes.tax <= newRes.tax ? 'Old Regime saves ' + fmt(newRes.tax - oldRes.tax) : 'New Regime saves ' + fmt(oldRes.tax - newRes.tax);
       set('tx-better', better);
-      set('tx-explain', `Old Regime Tax: ${fmt(oldRes.tax)} on taxable income of ${fmt(oldRes.taxableIncome)}. New Regime Tax: ${fmt(newRes.tax)} on ${fmt(newRes.taxableIncome)}. ${better}. Note: New regime allows fewer deductions but lower slab rates.`);
+      set('tx-explain', `FY 2025-26 — Old Regime Tax: ${fmt(oldRes.tax)} on taxable income of ${fmt(oldRes.taxableIncome)}. New Regime Tax: ${fmt(newRes.tax)} on ${fmt(newRes.taxableIncome)}. ${better}. New regime (Budget 2025): zero tax up to ₹12.75L gross; slabs 5%–30% from ₹4L. Old regime: standard deduction ₹50k + 80C/80D deductions.`);
       break;
     }
     case 'income-tax': {
@@ -910,8 +910,8 @@ function calcLive(id) {
       set('cg-tax', fmt(res.tax));
       set('cg-net', fmt(res.netGain));
       set('cg-explain', res.isLongTerm
-        ? (assetType==='equity' ? `LTCG on equity: 10% on gains above ₹1 lakh exemption (${fmt(res.exemption)} exempt). Tax: ${fmt(res.tax)}.` : `LTCG on debt: 20% with indexation benefit. Tax: ${fmt(res.tax)}.`)
-        : (assetType==='equity' ? `STCG on equity: flat 15%. Tax: ${fmt(res.tax)}.` : `STCG on debt: taxed as per income slab. Tax: ${fmt(res.tax)} (estimated at 20%).`));
+        ? (assetType==='equity' ? `LTCG on equity: 12.5% on gains above ₹1.25 lakh exemption (${fmt(res.exemption)} exempt). Tax: ${fmt(res.tax)}. (Budget 2024 rates)` : `LTCG on debt: 12.5% without indexation (Budget 2024). Tax: ${fmt(res.tax)}.`)
+        : (assetType==='equity' ? `STCG on equity: flat 20% (Budget 2024). Tax: ${fmt(res.tax)}.` : `STCG on debt: taxed as per income slab. Tax: ${fmt(res.tax)} (estimated at 30%).`));
       break;
     }
     case 'nps': {
@@ -1343,9 +1343,9 @@ const INSTRUMENT_PARAMS = {
 };
 
 const INSTRUMENT_META = {
-  sip:      { label:'SIP (MF)',      liquidity:'High',   risk:'Market Risk',  taxNote:'LTCG 10% (>₹1L)' },
+  sip:      { label:'SIP (MF)',      liquidity:'High',   risk:'Market Risk',  taxNote:'LTCG 12.5% (>₹1.25L)' },
   fd:       { label:'Fixed Deposit', liquidity:'Low',    risk:'Very Low',     taxNote:'Taxed as income' },
-  lumpsum:  { label:'Lumpsum (MF)',  liquidity:'High',   risk:'Market Risk',  taxNote:'LTCG 10% (>₹1L)' },
+  lumpsum:  { label:'Lumpsum (MF)',  liquidity:'High',   risk:'Market Risk',  taxNote:'LTCG 12.5% (>₹1.25L)' },
   gold:     { label:'Gold',          liquidity:'Medium', risk:'Medium',       taxNote:'LTCG 20%+indexation' },
   nps:      { label:'NPS',           liquidity:'Very Low',risk:'Market Risk', taxNote:'60% tax-free' },
   ppf:      { label:'PPF',           liquidity:'Low',    risk:'None',         taxNote:'EEE (Fully tax-free)' },
