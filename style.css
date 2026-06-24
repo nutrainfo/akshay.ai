@@ -715,6 +715,29 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
   .btn-install span { display: none; } /* icon-only on very small screens */
 }
 
+/* ---- PWA Instructions Modal ---- */
+.pwa-inst-modal { max-width: 480px; }
+.pwa-inst-steps { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 0.5rem; }
+.pwa-inst-step { display: flex; gap: 1rem; align-items: flex-start; }
+.pwa-inst-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font-weight: 700; font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pwa-inst-step strong { display: block; color: var(--text); font-size: 0.95rem; margin-bottom: 0.25rem; }
+.pwa-inst-step p { font-size: 0.85rem; color: var(--text2); margin: 0; }
+.pwa-inst-note {
+  font-size: 0.78rem; color: var(--text3);
+  margin-top: 1rem; padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.pwa-inst-note code {
+  background: var(--surface2); padding: 0.1rem 0.3rem;
+  border-radius: 4px; font-size: 0.75rem; font-family: monospace;
+}
+.pwa-inline-icon { display: inline-flex; vertical-align: middle; color: var(--accent); margin: 0 2px; }
+
 /* ---- Standalone mode: hide install button (already installed) ---- */
 @media (display-mode: standalone) {
   .btn-install { display: none !important; }

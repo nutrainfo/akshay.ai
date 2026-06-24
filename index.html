@@ -85,8 +85,8 @@
     </nav>
 
     <div class="header-actions">
-      <!-- Install App button — shown only when PWA install is available -->
-      <button id="pwa-install-btn" class="btn btn-install hidden" aria-label="Install FinCalc Pro app">
+      <!-- Install App button — always visible, hidden only in standalone mode -->
+      <button id="pwa-install-btn" class="btn btn-install" aria-label="Install FinCalc Pro app">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Install App
       </button>
@@ -578,6 +578,19 @@
     <span>Dark Mode</span>
     <input type="checkbox" id="dark-mode-toggle" role="switch" checked />
   </label>
+</div>
+
+<!-- PWA Install Instructions Modal (shown when native prompt unavailable) -->
+<div id="pwa-instructions-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pwa-inst-title">
+  <div class="modal glass pwa-inst-modal">
+    <div class="modal-header">
+      <h2 id="pwa-inst-title">Install FinCalc Pro</h2>
+      <button class="modal-close" aria-label="Close" onclick="document.getElementById('pwa-instructions-modal').classList.add('hidden');document.body.style.overflow=''">✕</button>
+    </div>
+    <div class="modal-body" id="pwa-inst-body">
+      <!-- filled by JS based on platform -->
+    </div>
+  </div>
 </div>
 
 <!-- PWA Install Toast -->
