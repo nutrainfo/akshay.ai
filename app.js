@@ -1217,7 +1217,7 @@ function renderMF(cat, search = '') {
       </div>
       <div class="mf-meta"><span>AUM: <strong class="mf-aum">${f.aum}</strong></span><span class="calc-tag tag-${f.cat}">${f.cat}</span></div>
       <div class="mf-actions">
-        <button class="btn-groww" onclick="window.open('${getGrowwLink(f.growwSlug)}','_blank')" aria-label="Open ${f.name} on Groww">📱 Open in Groww</button>
+        <button class="btn-groww" onclick="window.open('${getGrowwLink(f.growwSlug)}','_blank')" aria-label="Open ${f.name} on Groww">Open in Groww</button>
         <button class="btn btn-ghost btn-sm" onclick="openCalc('sip')">SIP Calculator</button>
       </div>
     </div>`).join('');
