@@ -574,3 +574,149 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 /* ---- Range slider labels ---- */
 .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .slider-val { font-weight: 700; font-size: 0.95rem; color: var(--accent); min-width: 60px; text-align: right; }
+
+/* ============================================================
+   PWA — Install button, Toast, Success, Update banner
+   ============================================================ */
+
+/* ---- Install button in header ---- */
+.btn-install {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1rem; border-radius: 8px;
+  font-size: 0.875rem; font-weight: 600;
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-install:hover {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.btn-install:active { transform: translateY(0); }
+.btn-install svg { flex-shrink: 0; }
+
+/* Enter animation for install button */
+.pwa-btn-enter {
+  animation: pwaFadeIn 0.4s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes pwaFadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ---- Install Toast ---- */
+.pwa-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  max-width: min(92vw, 480px);
+  width: 100%;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.pwa-toast:not(.hidden).pwa-toast-enter {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.pwa-toast.pwa-toast-exit {
+  opacity: 0;
+  transform: translateX(-50%) translateY(12px);
+  pointer-events: none;
+}
+
+.pwa-toast-icon {
+  flex-shrink: 0;
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+.pwa-toast-text { flex: 1; min-width: 0; }
+.pwa-toast-text p:first-child {
+  font-weight: 700; font-size: 0.95rem; color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.pwa-toast-text p:last-child {
+  font-size: 0.8rem; color: var(--text2); line-height: 1.4;
+}
+.pwa-toast-actions {
+  display: flex; flex-direction: column; gap: 0.375rem;
+  flex-shrink: 0; align-items: stretch;
+}
+.pwa-toast-actions .btn { white-space: nowrap; }
+
+/* ---- Installed success badge ---- */
+.pwa-success {
+  position: fixed;
+  top: 5rem; left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  opacity: 0;
+  z-index: 9999;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 100px;
+  font-size: 0.875rem; font-weight: 600;
+  color: var(--green);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.pwa-success:not(.hidden).pwa-success-enter {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+.pwa-success.pwa-success-exit {
+  opacity: 0; transform: translateX(-50%) translateY(-10px);
+}
+
+/* ---- Update banner ---- */
+.pwa-update-banner {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 9997;
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--surface2);
+  border-top: 1px solid rgba(99,102,241,0.3);
+  font-size: 0.875rem; color: var(--text2);
+  flex-wrap: wrap;
+  transform: translateY(100%); opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
+}
+.pwa-update-banner.pwa-update-enter {
+  transform: translateY(0); opacity: 1;
+}
+
+/* ---- Mobile: stack toast vertically on small screens ---- */
+@media (max-width: 480px) {
+  .pwa-toast { flex-direction: column; align-items: stretch; gap: 0.875rem; padding: 1rem 1.125rem; }
+  .pwa-toast-icon { width: 40px; height: 40px; border-radius: 10px; }
+  .pwa-toast-actions { flex-direction: row; justify-content: flex-end; }
+  .btn-install span { display: none; } /* icon-only on very small screens */
+}
+
+/* ---- Standalone mode: hide install button (already installed) ---- */
+@media (display-mode: standalone) {
+  .btn-install { display: none !important; }
+  .pwa-toast  { display: none !important; }
+}

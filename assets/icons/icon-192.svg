@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect width="192" height="192" rx="48" ry="48"/>
+    </clipPath>
+  </defs>
+  <rect width="192" height="192" rx="48" ry="48" fill="url(#g)"/>
+  <g clip-path="url(#clip)">
+    <polyline points="38.400000000000006,115.19999999999999 72.96000000000001,67.19999999999999 107.52000000000001,96 153.60000000000002,42.24"
+      fill="none" stroke="white" stroke-width="15.36" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="153.60000000000002" cy="42.24" r="15.36" fill="white"/>
+  </g>
+</svg>

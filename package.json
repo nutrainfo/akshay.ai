@@ -8,7 +8,8 @@
     "dev": "nodemon server/server.js",
     "test": "node tests/calculator.test.js",
     "lint": "eslint calculators/ app.js",
-    "serve": "npx serve . -l 8080"
+    "serve": "npx serve . -l 8080",
+    "generate-icons": "node assets/icons/generate-icons.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
