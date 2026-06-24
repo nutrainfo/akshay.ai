@@ -1230,8 +1230,8 @@ function renderMF(cat, search = '') {
 const MARKET_SEEDS = {
   NIFTY50: { base: 26200, name: 'NIFTY 50', priceId: 'mc-nifty-price', chgId: 'mc-nifty-chg', tickerId: 't-nifty', tickerChgId: 't-nifty-chg', histId: 'NIFTY50' },
   SENSEX:  { base: 86000, name: 'SENSEX', priceId: 'mc-sensex-price', chgId: 'mc-sensex-chg', tickerId: 't-sensex', tickerChgId: 't-sensex-chg', histId: 'SENSEX' },
-  GOLD:    { base: 96000, name: 'GOLD', priceId: 'mc-gold-price', chgId: 'mc-gold-chg', tickerId: 't-gold', tickerChgId: 't-gold-chg', histId: 'GOLD' },
-  SILVER:  { base: 102000, name: 'SILVER', priceId: 'mc-silver-price', chgId: 'mc-silver-chg', tickerId: 't-silver', tickerChgId: 't-silver-chg', histId: 'SILVER' },
+  GOLD:    { base: 145000, name: 'GOLD', priceId: 'mc-gold-price', chgId: 'mc-gold-chg', tickerId: 't-gold', tickerChgId: 't-gold-chg', histId: 'GOLD' },
+  SILVER:  { base: 115000, name: 'SILVER', priceId: 'mc-silver-price', chgId: 'mc-silver-chg', tickerId: 't-silver', tickerChgId: 't-silver-chg', histId: 'SILVER' },
   USDINR:  { base: 86.2 },
 };
 

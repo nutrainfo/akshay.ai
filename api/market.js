@@ -18,13 +18,16 @@ const YF = {
   USDINR:  'USDINR=X',
 };
 
+/* MCX import duty multiplier: 6% BCD + 5% AIDC + 3% GST ≈ 14% over international price */
+const MCX_DUTY = 1.14;
+
 /* Fallback values shown when every upstream fetch fails */
 /* Fallback values — June 2026 approximate levels */
 const FALLBACK = {
   NIFTY50: { price: 26200,  change: 0, changePct: 0 },
   SENSEX:  { price: 86000,  change: 0, changePct: 0 },
-  GOLD:    { price: 96000,  change: 0, changePct: 0 }, /* ₹/10g MCX */
-  SILVER:  { price: 102000, change: 0, changePct: 0 }, /* ₹/kg  MCX */
+  GOLD:    { price: 145000, change: 0, changePct: 0 }, /* ₹/10g MCX */
+  SILVER:  { price: 115000, change: 0, changePct: 0 }, /* ₹/kg  MCX */
   USDINR:  { price: 86.2,   change: 0, changePct: 0 },
 };
 
@@ -77,22 +80,22 @@ module.exports = async function handler(req, res) {
   /* USD/INR rate used for commodity conversions */
   const usdRate = ok(usdinrR, FALLBACK.USDINR).price;
 
-  /* Gold: USD / troy oz → INR / 10g  (1 troy oz = 31.1035 g) */
+  /* Gold: USD / troy oz → INR / 10g  (1 troy oz = 31.1035 g) + MCX import duties (~14%) */
   const goldRaw = goldR.status === 'fulfilled' ? goldR.value : null;
   const goldINR = goldRaw
     ? {
-        price:     (goldRaw.price  / 31.1035) * 10 * usdRate,
-        change:    (goldRaw.change / 31.1035) * 10 * usdRate,
+        price:     (goldRaw.price  / 31.1035) * 10 * usdRate * MCX_DUTY,
+        change:    (goldRaw.change / 31.1035) * 10 * usdRate * MCX_DUTY,
         changePct: goldRaw.changePct,
       }
     : FALLBACK.GOLD;
 
-  /* Silver: USD / troy oz → INR / kg  (1 kg = 1000 g; 1 troy oz = 31.1035 g) */
+  /* Silver: USD / troy oz → INR / kg  (1 kg = 1000 g; 1 troy oz = 31.1035 g) + MCX import duties */
   const silverRaw = silverR.status === 'fulfilled' ? silverR.value : null;
   const silverINR = silverRaw
     ? {
-        price:     (silverRaw.price  / 31.1035) * 1000 * usdRate,
-        change:    (silverRaw.change / 31.1035) * 1000 * usdRate,
+        price:     (silverRaw.price  / 31.1035) * 1000 * usdRate * MCX_DUTY,
+        change:    (silverRaw.change / 31.1035) * 1000 * usdRate * MCX_DUTY,
         changePct: silverRaw.changePct,
       }
     : FALLBACK.SILVER;
