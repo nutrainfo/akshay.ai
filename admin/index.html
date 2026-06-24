@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinCalc Pro — Admin Panel</title>
+  <style>
+    :root { --bg:#0a0b14; --surface:#161928; --border:rgba(255,255,255,0.1); --accent:#6366f1; --text:#e8eaf0; --text2:#9ca3b0; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    .header { background:var(--surface); border-bottom:1px solid var(--border); padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+    .container { max-width:1100px; margin:0 auto; padding:2rem; }
+    h1 { font-size:1.25rem; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem; }
+    .card h2 { font-size:1rem; margin-bottom:1rem; }
+    table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    th,td { padding:.5rem .75rem; border-bottom:1px solid var(--border); text-align:left; }
+    th { color:var(--text2); font-size:.78rem; text-transform:uppercase; }
+    input { background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:.375rem .5rem; width:80px; font-size:.85rem; }
+    input:focus { outline:2px solid var(--accent); }
+    .btn { padding:.375rem .75rem; border-radius:6px; border:none; cursor:pointer; font-size:.85rem; font-weight:600; }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-danger { background:#ef4444; color:#fff; }
+    .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text2); }
+    .status { font-size:.82rem; padding:.5rem; border-radius:6px; margin-top:.5rem; }
+    .status.ok { background:rgba(16,185,129,0.1); color:#10b981; }
+    .status.err { background:rgba(239,68,68,0.1); color:#ef4444; }
+    .auth-wall { max-width:400px; margin:4rem auto; }
+    .auth-wall input { width:100%; margin-bottom:.75rem; padding:.625rem; }
+    .tabs { display:flex; gap:.25rem; margin-bottom:1.5rem; }
+    .tab { padding:.5rem 1rem; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text2); cursor:pointer; }
+    .tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+
+<div id="auth-wall" class="auth-wall">
+  <div class="card">
+    <h2 style="margin-bottom:1rem">Admin Login</h2>
+    <input type="password" id="admin-key" placeholder="Admin Key" />
+    <button class="btn btn-primary" style="width:100%" onclick="login()">Login</button>
+    <p id="auth-err" class="status err hidden"></p>
+  </div>
+</div>
+
+<div id="admin-panel" class="hidden">
+  <div class="header">
+    <h1>FinCalc Pro — Admin Panel</h1>
+    <button class="btn btn-ghost" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('rates')">Bank Rates</button>
+      <button class="tab" onclick="showTab('funds')">Mutual Funds</button>
+      <button class="tab" onclick="showTab('settings')">Calc Defaults</button>
+    </div>
+
+    <!-- Bank Rates -->
+    <div id="tab-rates">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h2>FD Interest Rates</h2>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-ghost" onclick="importCSV()">Import CSV</button>
+            <button class="btn btn-primary" onclick="saveRates()">Save Changes</button>
+          </div>
+        </div>
+        <p id="rates-status"></p>
+        <div style="overflow-x:auto">
+          <table id="rates-table">
+            <thead><tr><th>Bank</th><th>1Y %</th><th>2Y %</th><th>3Y %</th><th>5Y %</th><th>Senior %</th><th>Action</th></tr></thead>
+            <tbody id="rates-tbody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-ghost" style="margin-top:1rem" onclick="addBankRow()">+ Add Bank</button>
+      </div>
+    </div>
+
+    <!-- Mutual Funds -->
+    <div id="tab-funds" class="hidden">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h2>Mutual Funds List</h2>
+          <button class="btn btn-primary" onclick="saveFunds()">Save Changes</button>
+        </div>
+        <p id="funds-status"></p>
+        <div style="overflow-x:auto">
+          <table id="funds-table">
+            <thead><tr><th>Name</th><th>AMC</th><th>1Y%</th><th>3Y%</th><th>5Y%</th><th>Risk</th><th>Groww Slug</th><th>Action</th></tr></thead>
+            <tbody id="funds-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="tab-settings" class="hidden">
+      <div class="card">
+        <h2>Calculator Defaults</h2>
+        <p style="color:var(--text2);font-size:.875rem;margin-bottom:1rem">These defaults pre-fill the calculator inputs for new users.</p>
+        <div id="defaults-list" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem"></div>
+        <button class="btn btn-primary" style="margin-top:1rem" onclick="saveDefaults()">Save Defaults</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let adminKey = '';
+
+function login() {
+  adminKey = document.getElementById('admin-key').value;
+  if (!adminKey) return;
+  fetch(`${API}/rates`, { headers: { 'x-admin-key': adminKey } })
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(() => {
+      document.getElementById('auth-wall').classList.add('hidden');
+      document.getElementById('admin-panel').classList.remove('hidden');
+      loadData();
+    })
+    .catch(() => {
+      const err = document.getElementById('auth-err');
+      err.textContent = 'Invalid admin key.';
+      err.classList.remove('hidden');
+    });
+}
+
+function logout() {
+  adminKey = '';
+  document.getElementById('auth-wall').classList.remove('hidden');
+  document.getElementById('admin-panel').classList.add('hidden');
+}
+
+function showTab(name) {
+  ['rates','funds','settings'].forEach(t => document.getElementById(`tab-${t}`).classList.add('hidden'));
+  document.getElementById(`tab-${name}`).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['rates','funds','settings'][i] === name));
+}
+
+function loadData() {
+  fetch(`${API}/rates`).then(r => r.json()).then(d => renderRates(d.data?.fd || []));
+  renderFunds();
+  renderDefaults();
+}
+
+function renderRates(data) {
+  document.getElementById('rates-tbody').innerHTML = data.map((b, i) => `
+    <tr>
+      <td><input type="text" style="width:180px" value="${b.name}" id="rn-${i}" /></td>
+      <td><input type="number" value="${b.y1}" id="r1-${i}" step=".05" /></td>
+      <td><input type="number" value="${b.y2}" id="r2-${i}" step=".05" /></td>
+      <td><input type="number" value="${b.y3}" id="r3-${i}" step=".05" /></td>
+      <td><input type="number" value="${b.y5}" id="r5-${i}" step=".05" /></td>
+      <td><input type="number" value="${b.senior}" id="rs-${i}" step=".05" /></td>
+      <td><button class="btn btn-danger" onclick="this.closest('tr').remove()">Remove</button></td>
+    </tr>`).join('');
+}
+
+let bankCount = 20;
+function addBankRow() {
+  const tbody = document.getElementById('rates-tbody');
+  const i = bankCount++;
+  tbody.insertAdjacentHTML('beforeend', `<tr>
+    <td><input type="text" style="width:180px" placeholder="Bank Name" id="rn-${i}" /></td>
+    <td><input type="number" value="7.0" id="r1-${i}" step=".05" /></td>
+    <td><input type="number" value="7.0" id="r2-${i}" step=".05" /></td>
+    <td><input type="number" value="7.0" id="r3-${i}" step=".05" /></td>
+    <td><input type="number" value="7.0" id="r5-${i}" step=".05" /></td>
+    <td><input type="number" value="7.5" id="rs-${i}" step=".05" /></td>
+    <td><button class="btn btn-danger" onclick="this.closest('tr').remove()">Remove</button></td>
+  </tr>`);
+}
+
+function saveRates() {
+  const rows = [...document.querySelectorAll('#rates-tbody tr')];
+  const data = rows.map((_, i) => ({
+    name: document.getElementById(`rn-${i}`)?.value || '',
+    y1: parseFloat(document.getElementById(`r1-${i}`)?.value),
+    y2: parseFloat(document.getElementById(`r2-${i}`)?.value),
+    y3: parseFloat(document.getElementById(`r3-${i}`)?.value),
+    y5: parseFloat(document.getElementById(`r5-${i}`)?.value),
+    senior: parseFloat(document.getElementById(`rs-${i}`)?.value),
+  })).filter(r => r.name);
+  fetch(`${API}/admin/rates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+    body: JSON.stringify({ fd: data, lastUpdated: new Date().toISOString().split('T')[0] })
+  }).then(r => r.json()).then(d => {
+    const el = document.getElementById('rates-status');
+    el.textContent = d.ok ? '✅ Saved successfully' : '❌ Save failed';
+    el.className = 'status ' + (d.ok ? 'ok' : 'err');
+  });
+}
+
+function renderFunds() {
+  /* Loaded from embedded MF_DATA in production; here just show placeholder */
+  document.getElementById('funds-tbody').innerHTML = `<tr><td colspan="8" style="color:var(--text2);text-align:center;padding:2rem">Mutual fund data managed in data/mf-data.js. Upload new CSV to update.</td></tr>`;
+}
+
+function saveFunds() {
+  document.getElementById('funds-status').textContent = 'Fund data is managed via data/mf-data.js. Edit the file directly or implement a JSON upload.';
+}
+
+function renderDefaults() {
+  const defaults = [
+    ['SIP Monthly Amount', 'sip_amount', '5000'],
+    ['SIP Return % p.a.', 'sip_rate', '12'],
+    ['SIP Tenure Years', 'sip_years', '15'],
+    ['Home Loan Amount', 'hl_amount', '3000000'],
+    ['Home Loan Rate %', 'hl_rate', '8.5'],
+    ['FD Principal', 'fd_principal', '100000'],
+    ['FD Rate %', 'fd_rate', '7'],
+  ];
+  document.getElementById('defaults-list').innerHTML = defaults.map(([label, key, val]) => `
+    <div><label style="font-size:.8rem;color:var(--text2);display:block;margin-bottom:.25rem">${label}</label>
+    <input type="text" id="def-${key}" value="${localStorage.getItem('def_'+key)||val}" style="width:100%" /></div>
+  `).join('');
+}
+
+function saveDefaults() {
+  document.querySelectorAll('#defaults-list input').forEach(el => {
+    localStorage.setItem('def_' + el.id.replace('def-',''), el.value);
+  });
+  alert('Defaults saved to browser storage.');
+}
+
+function importCSV() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.csv';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const lines = ev.target.result.split('\n').slice(1);
+      const data = lines.filter(l => l.trim()).map(l => {
+        const [name, y1, y2, y3, y5, senior] = l.split(',');
+        return { name: name?.trim(), y1: parseFloat(y1), y2: parseFloat(y2), y3: parseFloat(y3), y5: parseFloat(y5), senior: parseFloat(senior) };
+      }).filter(r => r.name);
+      renderRates(data);
+      alert(`Imported ${data.length} banks from CSV. Click "Save Changes" to persist.`);
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+</script>
+</body>
+</html>

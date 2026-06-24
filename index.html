@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Premium Indian financial calculators — SIP, EMI, FD, Tax, Mutual Funds, live Nifty/Sensex/Gold prices and ITR filing guide." />
+  <meta name="keywords" content="SIP calculator, EMI calculator, FD calculator, income tax calculator, mutual fund, Nifty, Sensex, gold price, ITR guide, NPS calculator" />
+  <title>FinCalc Pro — Premium Indian Financial Tools</title>
+
+  <!-- Canonical & OG -->
+  <link rel="canonical" href="https://fincalcpro.in/" />
+  <meta property="og:title" content="FinCalc Pro — Premium Indian Financial Tools" />
+  <meta property="og:description" content="20+ financial calculators, live market data, mutual fund explorer and ITR guide." />
+  <meta property="og:type" content="website" />
+
+  <!-- JSON-LD structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "FinCalc Pro",
+    "url": "https://fincalcpro.in",
+    "description": "Premium Indian financial calculators and market data",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://fincalcpro.in/calculators?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- Cookie / Privacy Banner -->
+<div id="cookie-banner" class="cookie-banner" role="alertdialog" aria-label="Cookie consent">
+  <p>We use cookies to improve your experience. We do not sell your data. <a href="#legal" class="link">Privacy Policy</a></p>
+  <div class="cookie-actions">
+    <button id="cookie-accept" class="btn btn-primary btn-sm">Accept</button>
+    <button id="cookie-decline" class="btn btn-ghost btn-sm">Decline</button>
+  </div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<header id="header" class="header" role="banner">
+  <div class="header-inner container">
+    <a href="#home" class="logo" aria-label="FinCalc Pro home">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
+        <path d="M8 22 L14 12 L20 18 L26 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="26" cy="8" r="2" fill="white"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+            <stop offset="0%" stop-color="#6366f1"/>
+            <stop offset="100%" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span class="logo-text">FinCalc<span class="accent">Pro</span></span>
+    </a>
+
+    <nav id="main-nav" class="nav" role="navigation" aria-label="Main navigation">
+      <a href="#calculators" class="nav-link">Calculators</a>
+      <a href="#banks" class="nav-link">Banks & Rates</a>
+      <a href="#mutual-funds" class="nav-link">Mutual Funds</a>
+      <a href="#markets" class="nav-link">Markets</a>
+      <a href="#itr-guide" class="nav-link">ITR Guide</a>
+      <a href="#compare" class="nav-link">Compare</a>
+      <a href="#legal" class="nav-link">Legal</a>
+      <a href="#contact" class="nav-link">Contact</a>
+    </nav>
+
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="window.open('https://groww.in','_blank')">Open in Groww</button>
+      <button id="menu-toggle" class="menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Live ticker -->
+  <div class="ticker-wrap" role="marquee" aria-label="Live market prices">
+    <div class="ticker-track" id="ticker-track">
+      <span class="ticker-item" data-symbol="NIFTY50"><span class="ticker-name">NIFTY 50</span> <span class="ticker-val" id="t-nifty">--</span> <span class="ticker-chg" id="t-nifty-chg">--</span></span>
+      <span class="ticker-item" data-symbol="SENSEX"><span class="ticker-name">SENSEX</span> <span class="ticker-val" id="t-sensex">--</span> <span class="ticker-chg" id="t-sensex-chg">--</span></span>
+      <span class="ticker-item" data-symbol="GOLD"><span class="ticker-name">GOLD (MCX)</span> <span class="ticker-val" id="t-gold">--</span> <span class="ticker-chg" id="t-gold-chg">--</span></span>
+      <span class="ticker-item" data-symbol="SILVER"><span class="ticker-name">SILVER</span> <span class="ticker-val" id="t-silver">--</span> <span class="ticker-chg" id="t-silver-chg">--</span></span>
+      <span class="ticker-item" data-symbol="USDINR"><span class="ticker-name">USD/INR</span> <span class="ticker-val" id="t-usdinr">--</span> <span class="ticker-chg" id="t-usdinr-chg">--</span></span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section id="home" class="hero section" aria-label="Hero">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+  <div class="hero-content container">
+    <div class="hero-badge">🇮🇳 India's Most Trusted Financial Calculators</div>
+    <h1 class="hero-title">Smart Financial<br><span class="gradient-text">Decisions Start Here</span></h1>
+    <p class="hero-subtitle">20+ precision calculators, live market prices, mutual fund explorer and step-by-step ITR guide — all in one premium platform.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary btn-lg" onclick="scrollToSection('calculators')">Explore Calculators</button>
+      <button class="btn btn-outline btn-lg" onclick="scrollToSection('markets')">Live Markets</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-val">20+</span><span class="stat-label">Calculators</span></div>
+      <div class="stat"><span class="stat-val">50+</span><span class="stat-label">Bank Rates</span></div>
+      <div class="stat"><span class="stat-val">100%</span><span class="stat-label">Free</span></div>
+      <div class="stat"><span class="stat-val">Live</span><span class="stat-label">Market Data</span></div>
+    </div>
+  </div>
+
+  <!-- Quick calculator strip -->
+  <div class="quick-strip container">
+    <div class="quick-card glass" onclick="openCalc('sip')">
+      <div class="quick-icon">📈</div>
+      <h3>SIP Calculator</h3>
+      <p>Plan your monthly investment</p>
+    </div>
+    <div class="quick-card glass" onclick="openCalc('emi')">
+      <div class="quick-icon">🏠</div>
+      <h3>EMI Calculator</h3>
+      <p>Home, car & education loans</p>
+    </div>
+    <div class="quick-card glass" onclick="openCalc('fd')">
+      <div class="quick-icon">🏦</div>
+      <h3>FD Calculator</h3>
+      <p>Fixed deposit returns</p>
+    </div>
+    <div class="quick-card glass" onclick="openCalc('tax')">
+      <div class="quick-icon">📋</div>
+      <h3>Tax Regime</h3>
+      <p>Old vs new tax comparison</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LEGAL DISCLAIMER BANNER ===== -->
+<div class="disclaimer-banner" role="note" aria-label="Legal disclaimer">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <strong>Disclaimer:</strong> This website is for informational purposes only and does not constitute financial advice. Always consult a SEBI-registered financial advisor before investing. Past performance is not indicative of future results.
+</div>
+
+<!-- ===== CALCULATORS ===== -->
+<section id="calculators" class="section" aria-labelledby="calc-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Tools</span>
+      <h2 id="calc-heading">Financial Calculators</h2>
+      <p class="section-subtitle">Precision-engineered formulas. Instant results. No sign-up required.</p>
+    </div>
+
+    <div class="calc-filters" role="group" aria-label="Filter calculators">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="investment">Investment</button>
+      <button class="filter-btn" data-filter="loan">Loans</button>
+      <button class="filter-btn" data-filter="tax">Tax</button>
+      <button class="filter-btn" data-filter="savings">Savings</button>
+      <button class="filter-btn" data-filter="retirement">Retirement</button>
+    </div>
+
+    <div class="calc-search-wrap">
+      <input type="search" id="calc-search" class="calc-search" placeholder="Search calculators…" aria-label="Search calculators" />
+    </div>
+
+    <div class="calc-grid" id="calc-grid" role="list">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ===== BANKS & RATES ===== -->
+<section id="banks" class="section section-alt" aria-labelledby="banks-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Banking</span>
+      <h2 id="banks-heading">Bank Interest Rates</h2>
+      <p class="section-subtitle">Compare savings, FD and loan rates across top Indian banks.</p>
+    </div>
+
+    <div class="bank-controls">
+      <div class="tab-group" role="tablist" aria-label="Rate type">
+        <button class="tab active" data-tab="fd" role="tab" aria-selected="true">Fixed Deposit</button>
+        <button class="tab" data-tab="savings" role="tab" aria-selected="false">Savings Account</button>
+        <button class="tab" data-tab="loans" role="tab" aria-selected="false">Loan Rates</button>
+      </div>
+      <div class="bank-filters">
+        <input type="search" id="bank-search" class="input-sm" placeholder="Search bank…" aria-label="Search bank" />
+        <button class="btn btn-primary btn-sm" id="compare-banks-btn">Compare Selected</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table" id="banks-table" aria-label="Bank rates">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="bank-select-all" aria-label="Select all" /></th>
+            <th>Bank <button class="sort-btn" data-col="name" aria-label="Sort by bank name">↕</button></th>
+            <th>1Y <button class="sort-btn" data-col="y1" aria-label="Sort by 1 year">↕</button></th>
+            <th>2Y</th><th>3Y</th><th>5Y</th><th>Senior</th>
+            <th>Updated</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="banks-tbody"></tbody>
+      </table>
+    </div>
+    <p class="table-note">* Rates are indicative and subject to change. Last updated: <span id="rates-updated">--</span>. Always verify with the bank directly.</p>
+  </div>
+</section>
+
+<!-- ===== MUTUAL FUNDS ===== -->
+<section id="mutual-funds" class="section" aria-labelledby="mf-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Investments</span>
+      <h2 id="mf-heading">Mutual Funds Explorer</h2>
+      <p class="section-subtitle">Top direct mutual funds with returns, AUM and direct Groww links.</p>
+    </div>
+
+    <div class="mf-controls">
+      <div class="tab-group" role="tablist" aria-label="Fund category">
+        <button class="tab active" data-mftab="all" role="tab">All</button>
+        <button class="tab" data-mftab="equity" role="tab">Equity</button>
+        <button class="tab" data-mftab="hybrid" role="tab">Hybrid</button>
+        <button class="tab" data-mftab="debt" role="tab">Debt</button>
+        <button class="tab" data-mftab="index" role="tab">Index</button>
+      </div>
+      <input type="search" id="mf-search" class="input-sm" placeholder="Search fund…" aria-label="Search mutual fund" />
+    </div>
+
+    <div class="mf-grid" id="mf-grid" role="list"></div>
+  </div>
+</section>
+
+<!-- ===== MARKETS ===== -->
+<section id="markets" class="section section-alt" aria-labelledby="markets-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Live Data</span>
+      <h2 id="markets-heading">Live Market Prices</h2>
+      <p class="section-subtitle">Real-time indices and commodity prices. Auto-refreshes every 30s during market hours.</p>
+    </div>
+
+    <div class="market-cards" role="list">
+      <div class="market-card glass" id="mc-nifty" role="listitem" aria-label="Nifty 50">
+        <div class="mc-header"><span class="mc-name">NIFTY 50</span><span class="mc-badge">NSE</span></div>
+        <div class="mc-price" id="mc-nifty-price">--</div>
+        <div class="mc-change" id="mc-nifty-chg">--</div>
+        <canvas class="mc-chart" id="chart-nifty" width="200" height="60" aria-hidden="true"></canvas>
+      </div>
+      <div class="market-card glass" id="mc-sensex" role="listitem" aria-label="Sensex">
+        <div class="mc-header"><span class="mc-name">SENSEX</span><span class="mc-badge">BSE</span></div>
+        <div class="mc-price" id="mc-sensex-price">--</div>
+        <div class="mc-change" id="mc-sensex-chg">--</div>
+        <canvas class="mc-chart" id="chart-sensex" width="200" height="60" aria-hidden="true"></canvas>
+      </div>
+      <div class="market-card glass" id="mc-gold" role="listitem" aria-label="Gold price">
+        <div class="mc-header"><span class="mc-name">GOLD (MCX)</span><span class="mc-badge">₹/10g</span></div>
+        <div class="mc-price" id="mc-gold-price">--</div>
+        <div class="mc-change" id="mc-gold-chg">--</div>
+        <canvas class="mc-chart" id="chart-gold" width="200" height="60" aria-hidden="true"></canvas>
+      </div>
+      <div class="market-card glass" id="mc-silver" role="listitem" aria-label="Silver price">
+        <div class="mc-header"><span class="mc-name">SILVER (MCX)</span><span class="mc-badge">₹/kg</span></div>
+        <div class="mc-price" id="mc-silver-price">--</div>
+        <div class="mc-change" id="mc-silver-chg">--</div>
+        <canvas class="mc-chart" id="chart-silver" width="200" height="60" aria-hidden="true"></canvas>
+      </div>
+    </div>
+
+    <div class="market-range-controls" role="group" aria-label="Chart range">
+      <button class="range-btn active" data-range="1D">1D</button>
+      <button class="range-btn" data-range="1W">1W</button>
+      <button class="range-btn" data-range="1M">1M</button>
+    </div>
+
+    <p class="table-note">Market data is delayed by 15 minutes. <strong>Not for trading decisions.</strong> Data sourced via proxy API.</p>
+  </div>
+</section>
+
+<!-- ===== ITR GUIDE ===== -->
+<section id="itr-guide" class="section" aria-labelledby="itr-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Tax Filing</span>
+      <h2 id="itr-heading">ITR Filing Guide</h2>
+      <p class="section-subtitle">Step-by-step guide to file your Income Tax Return online.</p>
+    </div>
+
+    <div class="itr-tab-group" role="tablist" aria-label="Taxpayer type">
+      <button class="tab active" data-itrtab="salaried" role="tab">Salaried</button>
+      <button class="tab" data-itrtab="business" role="tab">Business / Self-Employed</button>
+      <button class="tab" data-itrtab="capital" role="tab">Capital Gains</button>
+    </div>
+
+    <div class="itr-content" id="itr-salaried">
+      <div class="itr-steps">
+        <div class="itr-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Gather Documents</h3>
+            <p>Collect Form 16 (Part A & B) from your employer, bank interest certificates, investment proofs (80C/80D), Form 26AS, and AIS from the Income Tax Portal.</p>
+            <a href="https://www.incometax.gov.in/iec/foportal/help/individual/how-to-download-form26as-via-incometax" target="_blank" rel="noopener noreferrer" class="itr-link">Download Form 26AS ↗</a>
+          </div>
+        </div>
+        <div class="itr-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Register / Login to e-Filing Portal</h3>
+            <p>Visit the official Income Tax e-Filing portal. Register with your PAN if you're a first-time filer.</p>
+            <a href="https://eportal.incometax.gov.in/" target="_blank" rel="noopener noreferrer" class="itr-link">Go to e-Filing Portal ↗</a>
+          </div>
+        </div>
+        <div class="itr-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Choose ITR Form</h3>
+            <p>For salaried individuals with one employer and no capital gains: use <strong>ITR-1 (Sahaj)</strong>. With multiple employers or capital gains use ITR-2.</p>
+          </div>
+        </div>
+        <div class="itr-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Pre-fill & Verify Details</h3>
+            <p>The portal pre-fills salary, TDS and investments from Form 16 and AIS. Verify all figures carefully against your documents.</p>
+          </div>
+        </div>
+        <div class="itr-step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Compute Tax & Choose Regime</h3>
+            <p>Use our <a href="#calculators" class="link" onclick="openCalc('tax')">Old vs New Tax Regime Calculator</a> to choose the most beneficial regime before filing.</p>
+          </div>
+        </div>
+        <div class="itr-step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <h3>e-Verify & Submit</h3>
+            <p>Submit the form and e-verify using Aadhaar OTP, net banking, or DSC. ITR is not complete until e-verified within 30 days.</p>
+            <a href="https://eportal.incometax.gov.in/iec/foservices/#/e-verify-return" target="_blank" rel="noopener noreferrer" class="itr-link">e-Verify Return ↗</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="itr-content hidden" id="itr-business">
+      <div class="itr-steps">
+        <div class="itr-step"><div class="step-num">1</div><div class="step-body"><h3>Applicable Forms</h3><p>Business/self-employed individuals with income from business or profession use <strong>ITR-3</strong> (with books) or <strong>ITR-4 (Sugam)</strong> for presumptive taxation under 44AD/44ADA/44AE.</p></div></div>
+        <div class="itr-step"><div class="step-num">2</div><div class="step-body"><h3>Collect Financial Statements</h3><p>Prepare P&L, balance sheet, GST returns (GSTR-3B/1), TDS certificates (26AS), and advance tax payment challans.</p></div></div>
+        <div class="itr-step"><div class="step-num">3</div><div class="step-body"><h3>Tax Audit (if applicable)</h3><p>If turnover exceeds ₹1 crore (business) or ₹50 lakh (profession), a tax audit under Sec 44AB is mandatory. Upload audit report before filing.</p></div></div>
+        <div class="itr-step"><div class="step-num">4</div><div class="step-body"><h3>Filing Deadline</h3><p>For non-audit cases: July 31. For tax audit cases: October 31. Late filing attracts penalty u/s 234F up to ₹5,000.</p></div></div>
+        <div class="itr-step"><div class="step-num">5</div><div class="step-body"><h3>Submit & e-Verify</h3><p>Login to the e-filing portal, choose the correct ITR form, enter income details, compute tax, pay any dues, submit and e-verify.</p><a href="https://eportal.incometax.gov.in/" target="_blank" rel="noopener noreferrer" class="itr-link">e-Filing Portal ↗</a></div></div>
+      </div>
+    </div>
+
+    <div class="itr-content hidden" id="itr-capital">
+      <div class="itr-steps">
+        <div class="itr-step"><div class="step-num">1</div><div class="step-body"><h3>Identify Capital Gains</h3><p>Capital gains arise from sale of equity shares, mutual funds, property, bonds etc. Use our <a href="#calculators" class="link" onclick="openCalc('capital-gains')">Capital Gains Calculator</a>.</p></div></div>
+        <div class="itr-step"><div class="step-num">2</div><div class="step-body"><h3>STCG vs LTCG</h3><p>Equity funds/shares held &lt;12 months: STCG @ 15%. Held &gt;12 months: LTCG @ 10% above ₹1 lakh. Debt funds: taxed as income (post April 2023 amendment).</p></div></div>
+        <div class="itr-step"><div class="step-num">3</div><div class="step-body"><h3>Indexation (for property/debt)</h3><p>For LTCG on real estate and pre-2023 debt funds, apply CII (Cost Inflation Index) to reduce indexed cost. Find CII on the IT portal.</p></div></div>
+        <div class="itr-step"><div class="step-num">4</div><div class="step-body"><h3>Use ITR-2</h3><p>Salaried with capital gains must use <strong>ITR-2</strong>. Enter each transaction in Schedule CG. P&L statement from broker / Zerodha tax report simplifies this.</p></div></div>
+        <div class="itr-step"><div class="step-num">5</div><div class="step-body"><h3>Set-off & Carry Forward</h3><p>STCL can offset STCG/LTCG. LTCL can only offset LTCG. Unabsorbed losses can be carried forward for 8 years.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COMPARE ENGINE ===== -->
+<section id="compare" class="section section-alt" aria-labelledby="compare-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Analysis</span>
+      <h2 id="compare-heading">Investment Comparison Engine</h2>
+      <p class="section-subtitle">Compare up to 3 instruments side-by-side with scenario analysis.</p>
+    </div>
+
+    <div class="compare-setup glass">
+      <div class="compare-inputs">
+        <div class="form-group">
+          <label for="cmp-amount">Investment Amount (₹)</label>
+          <input type="number" id="cmp-amount" class="input" value="100000" min="1000" step="1000" />
+        </div>
+        <div class="form-group">
+          <label for="cmp-horizon">Horizon (years)</label>
+          <input type="number" id="cmp-horizon" class="input" value="10" min="1" max="40" />
+        </div>
+        <div class="form-group">
+          <label for="cmp-risk">Risk Profile</label>
+          <select id="cmp-risk" class="input">
+            <option value="conservative">Conservative</option>
+            <option value="moderate" selected>Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cmp-tax">Tax Bracket</label>
+          <select id="cmp-tax" class="input">
+            <option value="0">0% (No Tax)</option>
+            <option value="5">5%</option>
+            <option value="20">20%</option>
+            <option value="30" selected>30%</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="compare-instruments">
+        <label>Select Instruments to Compare:</label>
+        <div class="instrument-chips">
+          <button class="chip active" data-inst="sip">SIP</button>
+          <button class="chip active" data-inst="fd">FD</button>
+          <button class="chip" data-inst="lumpsum">Lumpsum</button>
+          <button class="chip active" data-inst="gold">Gold</button>
+          <button class="chip" data-inst="nps">NPS</button>
+          <button class="chip" data-inst="ppf">PPF</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="run-compare">Run Comparison</button>
+    </div>
+
+    <div class="compare-results hidden" id="compare-results">
+      <div class="compare-table-wrap">
+        <table class="compare-table" id="compare-table" aria-label="Investment comparison">
+          <thead id="compare-thead"></thead>
+          <tbody id="compare-tbody"></tbody>
+        </table>
+      </div>
+      <div class="compare-verdict" id="compare-verdict"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LEGAL ===== -->
+<section id="legal" class="section" aria-labelledby="legal-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Legal</span>
+      <h2 id="legal-heading">Legal & Disclaimers</h2>
+    </div>
+    <div class="legal-grid">
+      <div class="legal-card glass">
+        <h3>Disclaimer</h3>
+        <p>FinCalc Pro is a financial education and calculator platform. All content is for <strong>informational and educational purposes only</strong> and does not constitute financial, investment, tax or legal advice. We are not a SEBI-registered investment advisor, broker, or portfolio manager.</p>
+        <p>Calculator results are based on mathematical formulas and user-provided inputs. Actual returns may vary. <strong>Do not make investment decisions solely based on results from this platform.</strong> Consult a qualified, SEBI-registered financial advisor.</p>
+      </div>
+      <div class="legal-card glass">
+        <h3>Privacy Policy</h3>
+        <p>We collect minimal data: calculator inputs are processed client-side and not stored. Optional contact form data is stored securely and not shared with third parties. We use privacy-respecting analytics (cookieless).</p>
+        <p>We comply with the Information Technology (Amendment) Act, 2008 and the upcoming Digital Personal Data Protection Act, 2023 (India). By using this site you agree to our privacy practices.</p>
+      </div>
+      <div class="legal-card glass">
+        <h3>Terms of Use</h3>
+        <p>You may use this platform for personal, non-commercial purposes. Reproduction or scraping of content without permission is prohibited. We make no warranty about the accuracy of market data (which is delayed 15+ minutes and sourced from third-party APIs).</p>
+        <p>Past performance of any financial instrument mentioned is not a guarantee of future performance.</p>
+      </div>
+      <div class="legal-card glass">
+        <h3>Cookie Policy</h3>
+        <p>We use strictly necessary cookies for site functionality. With your consent, we may load analytics scripts. We do not use advertising or tracking cookies. You may withdraw consent at any time by clearing site cookies.</p>
+        <p>Mutual fund and bank data is sourced from publicly available information. Verify all data directly with the respective institution before acting on it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CONTACT ===== -->
+<section id="contact" class="section section-alt" aria-labelledby="contact-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Contact</span>
+      <h2 id="contact-heading">Get in Touch</h2>
+      <p class="section-subtitle">Questions, suggestions, or data corrections? We'd love to hear from you.</p>
+    </div>
+    <form class="contact-form glass" id="contact-form" novalidate aria-label="Contact form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="contact-name">Name</label>
+          <input type="text" id="contact-name" name="name" class="input" placeholder="Your name" required autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label for="contact-email">Email</label>
+          <input type="email" id="contact-email" name="email" class="input" placeholder="you@example.com" required autocomplete="email" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="contact-msg">Message</label>
+        <textarea id="contact-msg" name="message" class="input" rows="4" placeholder="Your message…" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Send Message</button>
+      <p id="contact-status" class="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer" role="contentinfo">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#home" class="logo" aria-label="FinCalc Pro home">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="url(#logoGrad2)"/><path d="M8 22 L14 12 L20 18 L26 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="8" r="2" fill="white"/><defs><linearGradient id="logoGrad2" x1="0" y1="0" x2="32" y2="32"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs></svg>
+          <span class="logo-text">FinCalc<span class="accent">Pro</span></span>
+        </a>
+        <p>India's most comprehensive free financial calculator platform.</p>
+        <p class="footer-disclaimer"><strong>Not financial advice.</strong> For education only.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Calculators</h4>
+        <ul><li><a href="#calculators" onclick="openCalc('sip')">SIP Calculator</a></li><li><a href="#calculators" onclick="openCalc('emi')">Home Loan EMI</a></li><li><a href="#calculators" onclick="openCalc('fd')">FD Calculator</a></li><li><a href="#calculators" onclick="openCalc('tax')">Tax Regime</a></li><li><a href="#calculators" onclick="openCalc('nps')">NPS Calculator</a></li></ul>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <ul><li><a href="#itr-guide">ITR Filing Guide</a></li><li><a href="#banks">Bank Rates</a></li><li><a href="#mutual-funds">Mutual Funds</a></li><li><a href="#markets">Live Markets</a></li><li><a href="#compare">Compare</a></li></ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul><li><a href="#legal">Disclaimer</a></li><li><a href="#legal">Privacy Policy</a></li><li><a href="#legal">Terms of Use</a></li><li><a href="#legal">Cookie Policy</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2024 FinCalc Pro. All rights reserved. | Informational purposes only.</p>
+      <p>Market data delayed 15 min. Verify with respective exchanges before trading.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== CALCULATOR MODAL ===== -->
+<div id="calc-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal glass">
+    <div class="modal-header">
+      <h2 id="modal-title">Calculator</h2>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="modal-export-csv">Export CSV</button>
+        <button class="btn btn-ghost btn-sm" id="modal-share">Share</button>
+        <button class="modal-close" aria-label="Close calculator" id="modal-close">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <!-- injected per calculator -->
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS PANEL ===== -->
+<div id="settings-btn" class="settings-fab" role="button" tabindex="0" aria-label="Settings" onclick="toggleSettings()">⚙</div>
+<div id="settings-panel" class="settings-panel glass hidden" role="dialog" aria-label="Settings">
+  <h3>Settings</h3>
+  <label class="toggle-row">
+    <span>Reduced Motion</span>
+    <input type="checkbox" id="reduced-motion-toggle" role="switch" />
+  </label>
+  <label class="toggle-row">
+    <span>Dark Mode</span>
+    <input type="checkbox" id="dark-mode-toggle" role="switch" checked />
+  </label>
+</div>
+
+<script src="calculators/formulas.js"></script>
+<script src="data/bank-data.js"></script>
+<script src="data/mf-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

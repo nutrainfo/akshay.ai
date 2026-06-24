@@ -1,0 +1,31 @@
+{
+  "name": "fincalcpro",
+  "version": "1.0.0",
+  "description": "Premium Indian financial calculators — SIP, EMI, FD, Tax, live markets and ITR guide",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "test": "node tests/calculator.test.js",
+    "lint": "eslint calculators/ app.js",
+    "serve": "npx serve . -l 8080"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.3",
+    "express-rate-limit": "^7.2.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "nodemon": "^3.1.0",
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "keywords": ["sip", "emi", "fd", "income-tax", "nifty", "sensex", "mutual-fund", "itr", "india", "finance"],
+  "author": "FinCalc Pro"
+}
