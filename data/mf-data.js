@@ -27,5 +27,7 @@ const MF_DATA = [
 ];
 
 function getGrowwLink(name) {
-  return `https://groww.in/mutual-funds/search?q=${encodeURIComponent(name)}`;
+  /* Groww handles search client-side; land on their MF page with name as hint */
+  const q = encodeURIComponent(name.replace(/Direct-Growth|Direct Plan Growth/gi, '').trim());
+  return `https://groww.in/mutual-funds?name=${q}`;
 }
