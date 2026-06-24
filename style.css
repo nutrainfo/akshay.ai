@@ -598,6 +598,19 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 }
 
 /* ---- Scroll animations ---- */
+/* ---- SIP Ladder rows ---- */
+.ladder-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: end;
+  margin-bottom: 0.5rem;
+}
+@media (max-width: 480px) {
+  .ladder-row { grid-template-columns: 1fr 1fr; }
+  .ladder-row > button { grid-column: 1 / -1; justify-self: start; }
+}
+
 .reveal {
   opacity: 0; transform: translateY(24px);
   transition: opacity 0.6s ease, transform 0.6s ease;

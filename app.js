@@ -402,11 +402,11 @@ function uiSIPLadder() {
 }
 
 function ladderRow(i) {
-  return `<div class="ladder-row" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-bottom:.5rem;" id="lrow-${i}">
+  return `<div class="ladder-row" id="lrow-${i}">
     <div class="form-group"><label>Monthly SIP (₹)</label><input type="number" class="input" id="lr-amt-${i}" value="${[5000,3000,2000][i]||1000}" oninput="calcLive('sip-ladder')" /></div>
     <div class="form-group"><label>Return % p.a.</label><input type="number" class="input" id="lr-rate-${i}" value="12" oninput="calcLive('sip-ladder')" /></div>
     <div class="form-group"><label>Years</label><input type="number" class="input" id="lr-years-${i}" value="10" oninput="calcLive('sip-ladder')" /></div>
-    <button class="btn btn-ghost btn-sm" onclick="removeLadderRow(${i})" style="margin-bottom:.1rem">✕</button>
+    <button class="btn btn-ghost btn-sm" onclick="removeLadderRow(${i})">✕</button>
   </div>`;
 }
 
