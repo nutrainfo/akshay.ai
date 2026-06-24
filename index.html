@@ -7,26 +7,83 @@
   <meta name="keywords" content="SIP calculator, EMI calculator, FD calculator, income tax calculator, mutual fund, Nifty, Sensex, gold price, ITR guide, NPS calculator" />
   <title>FinCalc Pro — Premium Indian Financial Tools</title>
 
-  <!-- Canonical & OG -->
+  <!-- Canonical & Open Graph -->
   <link rel="canonical" href="https://fincalcpro.in/" />
-  <meta property="og:title" content="FinCalc Pro — Premium Indian Financial Tools" />
-  <meta property="og:description" content="20+ financial calculators, live market data, mutual fund explorer and ITR guide." />
-  <meta property="og:type" content="website" />
+  <meta property="og:title"       content="FinCalc Pro — Free Indian Financial Calculators" />
+  <meta property="og:description" content="20+ free calculators: SIP, EMI, FD, Tax (FY 2025-26), Capital Gains, NPS, PPF. Live Nifty/Sensex/Gold prices. Budget 2025 new tax regime." />
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://fincalcpro.in/" />
+  <meta property="og:image"       content="https://fincalcpro.in/assets/icons/icon-512.png" />
+  <meta property="og:image:width"  content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:locale"      content="en_IN" />
+  <meta property="og:site_name"   content="FinCalc Pro" />
 
-  <!-- JSON-LD structured data -->
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card"        content="summary" />
+  <meta name="twitter:title"       content="FinCalc Pro — Free Indian Financial Calculators" />
+  <meta name="twitter:description" content="SIP, EMI, FD, Tax (FY 2025-26), Capital Gains & 15 more calculators. Live Nifty/Gold prices. Free forever." />
+  <meta name="twitter:image"       content="https://fincalcpro.in/assets/icons/icon-512.png" />
+
+  <!-- JSON-LD: WebSite + SoftwareApplication + FAQPage -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "FinCalc Pro",
-    "url": "https://fincalcpro.in",
-    "description": "Premium Indian financial calculators and market data",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://fincalcpro.in/calculators?q={search_term_string}",
-      "query-input": "required name=search_term_string"
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "FinCalc Pro",
+      "url": "https://fincalcpro.in",
+      "description": "Free Indian financial calculators — SIP, EMI, FD, Tax FY 2025-26, Capital Gains, NPS, PPF and live market data.",
+      "inLanguage": "en-IN",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://fincalcpro.in/?calc={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "FinCalc Pro",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, Android, iOS",
+      "url": "https://fincalcpro.in",
+      "description": "20+ free Indian financial calculators with live Nifty, Sensex and Gold prices.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+      "featureList": [
+        "SIP Calculator", "EMI Calculator", "FD Calculator",
+        "Old vs New Tax Regime FY 2025-26", "Capital Gains Tax Calculator",
+        "NPS Calculator", "PPF Calculator", "Retirement Corpus Planner",
+        "Live Nifty 50 and Sensex prices", "Mutual Fund Explorer"
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How is SIP future value calculated?",
+          "acceptedAnswer": { "@type": "Answer", "text": "SIP future value = Monthly × ((1+r)^n − 1) / r × (1+r), where r = monthly rate and n = total months." }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the new tax slabs for FY 2025-26?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Under Budget 2025 new regime: 0% up to ₹4L, 5% ₹4–8L, 10% ₹8–12L, 15% ₹12–16L, 20% ₹16–20L, 25% ₹20–24L, 30% above ₹24L. Zero tax up to ₹12.75L for salaried (87A rebate of ₹60,000)." }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the capital gains tax rates after Budget 2024?",
+          "acceptedAnswer": { "@type": "Answer", "text": "LTCG on equity (>12 months): 12.5% above ₹1.25L exemption. STCG on equity (<12 months): 20%. Debt fund LTCG (>24 months): 12.5% without indexation." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is FinCalc Pro free to use?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All 20+ calculators, live market data, mutual fund explorer and ITR guide are completely free with no sign-up required." }
+        }
+      ]
     }
-  }
+  ]
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -41,8 +98,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FinCalc Pro" />
   <meta name="theme-color" content="#6366f1" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.svg" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="icon" type="image/svg+xml" href="assets/icons/icon-192.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
 </head>
 <body>
 
@@ -264,7 +322,7 @@
     <div class="section-header">
       <span class="section-tag">Live Data</span>
       <h2 id="markets-heading">Live Market Prices</h2>
-      <p class="section-subtitle">Real-time indices and commodity prices. Auto-refreshes every 30s during market hours.</p>
+      <p class="section-subtitle" id="markets-subtitle">Live prices via Yahoo Finance. Refreshes every 10 minutes. Delayed ~15 min.</p>
     </div>
 
     <div class="market-cards" role="list">

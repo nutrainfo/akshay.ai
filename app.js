@@ -1236,13 +1236,18 @@ const MARKET_SEEDS = {
 };
 
 function initMarkets() {
-  /* Seed with base values */
+  /* Seed with base values for instant display before API responds */
   for (const [sym, cfg] of Object.entries(MARKET_SEEDS)) {
-    App.marketData[sym] = cfg.base;
-    for (let i = 0; i < 50; i++) App.marketHistory[sym]?.push(cfg.base * (1 + (Math.random() - 0.5) * 0.02));
+    App.marketData[sym] = { price: cfg.base, change: 0, changePct: 0 };
+    for (let i = 0; i < 50; i++) {
+      App.marketHistory[sym]?.push(cfg.base * (1 + (Math.random() - 0.5) * 0.01));
+    }
   }
   updateMarketDisplay();
-  startMarketSimulation();
+
+  /* Fetch real data; refresh every 10 minutes */
+  fetchAndUpdateMarket();
+  App.marketInterval = setInterval(fetchAndUpdateMarket, 10 * 60 * 1000);
 
   document.querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1253,44 +1258,96 @@ function initMarkets() {
   });
 }
 
-function startMarketSimulation() {
-  /* In production: connect to WebSocket relay (server/server.js) */
-  App.marketInterval = setInterval(() => {
-    for (const sym of Object.keys(MARKET_SEEDS)) {
-      const prev = App.marketData[sym];
-      const change = prev * (Math.random() - 0.495) * 0.003;
-      App.marketData[sym] = +(prev + change).toFixed(2);
-      App.marketHistory[sym]?.push(App.marketData[sym]);
-      if (App.marketHistory[sym]?.length > 200) App.marketHistory[sym]?.shift();
+const MARKET_CACHE_KEY = 'fincalc_market_v1';
+const MARKET_CACHE_TTL = 5 * 60 * 1000; /* 5 minutes */
+
+async function fetchAndUpdateMarket() {
+  /* Check sessionStorage cache first to avoid redundant API calls */
+  try {
+    const cached = sessionStorage.getItem(MARKET_CACHE_KEY);
+    if (cached) {
+      const { ts, data } = JSON.parse(cached);
+      if (Date.now() - ts < MARKET_CACHE_TTL) {
+        applyMarketData(data);
+        return;
+      }
     }
-    updateMarketDisplay();
-  }, 8000);
+  } catch {}
+
+  try {
+    const res = await fetch('/api/market', { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.ok || !json.data) throw new Error('Bad response');
+
+    /* Cache the successful response */
+    try { sessionStorage.setItem(MARKET_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: json.data })); } catch {}
+
+    applyMarketData(json.data);
+
+    /* Mark market section as confirmed live (subtitle already set to live text in HTML) */
+    if (!json._partial) {
+      const badge = document.querySelector('#markets .section-tag');
+      if (badge) badge.textContent = 'Live';
+    }
+  } catch (err) {
+    /* Silently keep seeded values on failure — no console spam in production */
+  }
+}
+
+function applyMarketData(data) {
+  for (const [sym, val] of Object.entries(data)) {
+    App.marketData[sym] = val;
+    /* Append current price to history for sparkline */
+    if (App.marketHistory[sym]) {
+      App.marketHistory[sym].push(val.price);
+      if (App.marketHistory[sym].length > 200) App.marketHistory[sym].shift();
+    }
+  }
+  updateMarketDisplay();
 }
 
 function updateMarketDisplay() {
   const fmt = (v, decimals = 2) => v.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   const configs = [
-    ['NIFTY50', 'mc-nifty-price', 'mc-nifty-chg', 't-nifty', 't-nifty-chg', 'chart-nifty'],
-    ['SENSEX', 'mc-sensex-price', 'mc-sensex-chg', 't-sensex', 't-sensex-chg', 'chart-sensex'],
-    ['GOLD', 'mc-gold-price', 'mc-gold-chg', 't-gold', 't-gold-chg', 'chart-gold'],
-    ['SILVER', 'mc-silver-price', 'mc-silver-chg', 't-silver', 't-silver-chg', 'chart-silver'],
-    ['USDINR', null, null, 't-usdinr', 't-usdinr-chg', null],
+    ['NIFTY50', 'mc-nifty-price',  'mc-nifty-chg',  't-nifty',   't-nifty-chg',   'chart-nifty'],
+    ['SENSEX',  'mc-sensex-price', 'mc-sensex-chg', 't-sensex',  't-sensex-chg',  'chart-sensex'],
+    ['GOLD',    'mc-gold-price',   'mc-gold-chg',   't-gold',    't-gold-chg',    'chart-gold'],
+    ['SILVER',  'mc-silver-price', 'mc-silver-chg', 't-silver',  't-silver-chg',  'chart-silver'],
+    ['USDINR',  null,              null,             't-usdinr',  't-usdinr-chg',  null],
   ];
 
   for (const [sym, priceId, chgId, tickId, tickChgId, chartId] of configs) {
-    const val = App.marketData[sym];
-    const hist = App.marketHistory[sym] || [];
-    const prev = hist[hist.length - 20] || MARKET_SEEDS[sym]?.base || val;
-    const change = val - prev;
-    const changePct = prev ? ((change / prev) * 100).toFixed(2) : 0;
-    const isUp = change >= 0;
-    const chgText = `${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)} (${Math.abs(changePct)}%)`;
-    const cls = isUp ? 'up' : 'down';
+    const entry = App.marketData[sym];
+    /* Support both old scalar format (seed) and new object format (API) */
+    const price      = typeof entry === 'object' ? entry.price      : entry;
+    const change     = typeof entry === 'object' ? entry.change     : 0;
+    const changePct  = typeof entry === 'object' ? entry.changePct  : 0;
 
-    if (priceId) { const el = document.getElementById(priceId); if (el) el.textContent = '₹' + fmt(val); }
-    if (chgId) { const el = document.getElementById(chgId); if (el) { el.textContent = chgText; el.className = 'mc-change ' + cls; } }
-    if (tickId) { const el = document.getElementById(tickId); if (el) el.textContent = sym === 'USDINR' ? '₹' + fmt(val) : '₹' + fmt(val); }
-    if (tickChgId) { const el = document.getElementById(tickChgId); if (el) { el.textContent = chgText; el.className = 'ticker-chg ' + cls; } }
+    const isUp    = change >= 0;
+    const absPct  = Math.abs(changePct).toFixed(2);
+    const absChg  = Math.abs(change).toFixed(sym === 'USDINR' ? 4 : 2);
+    const chgText = `${isUp ? '▲' : '▼'} ${absChg} (${absPct}%)`;
+    const cls     = isUp ? 'up' : 'down';
+
+    const hist = App.marketHistory[sym] || [];
+
+    if (priceId) {
+      const el = document.getElementById(priceId);
+      if (el) el.textContent = '₹' + fmt(price, sym === 'USDINR' ? 4 : 2);
+    }
+    if (chgId) {
+      const el = document.getElementById(chgId);
+      if (el) { el.textContent = chgText; el.className = 'mc-change ' + cls; }
+    }
+    if (tickId) {
+      const el = document.getElementById(tickId);
+      if (el) el.textContent = '₹' + fmt(price, sym === 'USDINR' ? 4 : 2);
+    }
+    if (tickChgId) {
+      const el = document.getElementById(tickChgId);
+      if (el) { el.textContent = chgText; el.className = 'ticker-chg ' + cls; }
+    }
     if (chartId) drawSparkline(chartId, hist.slice(-50), isUp ? '#10b981' : '#ef4444');
   }
 }
