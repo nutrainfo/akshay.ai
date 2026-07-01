@@ -93,12 +93,11 @@
 </head>
 <body>
 
-<!-- Cookie / Privacy Banner -->
-<div id="cookie-banner" class="cookie-banner" role="alertdialog" aria-label="Cookie consent">
-  <p>We use cookies to improve your experience. We do not sell your data. <a href="#legal" class="link">Privacy Policy</a></p>
+<!-- Privacy Notice Banner -->
+<div id="cookie-banner" class="cookie-banner" role="alertdialog" aria-label="Privacy notice">
+  <p>We don't collect any data. Calculator inputs stay in your browser and are never sent anywhere. <a href="#legal" class="link">Privacy Policy</a></p>
   <div class="cookie-actions">
-    <button id="cookie-accept" class="btn btn-primary btn-sm">Accept</button>
-    <button id="cookie-decline" class="btn btn-ghost btn-sm">Decline</button>
+    <button id="cookie-accept" class="btn btn-primary btn-sm">Got it</button>
   </div>
 </div>
 
@@ -124,7 +123,6 @@
       <a href="#calculators" class="nav-link">Calculators</a>
       <a href="#compare" class="nav-link">Compare</a>
       <a href="#legal" class="nav-link">Legal</a>
-      <a href="#contact" class="nav-link">Contact</a>
     </nav>
 
     <div class="header-actions">
@@ -272,6 +270,12 @@
           <button class="chip active" data-inst="gold">Gold</button>
           <button class="chip" data-inst="nps">NPS</button>
           <button class="chip" data-inst="ppf">PPF</button>
+          <button class="chip" data-inst="rd">RD</button>
+          <button class="chip" data-inst="elss">ELSS</button>
+          <button class="chip" data-inst="debt">Debt Fund</button>
+          <button class="chip" data-inst="realestate">Real Estate</button>
+          <button class="chip" data-inst="crypto">Crypto</button>
+          <button class="chip" data-inst="ssy">Sukanya Samriddhi</button>
         </div>
       </div>
 
@@ -305,8 +309,8 @@
       </div>
       <div class="legal-card glass">
         <h3>Privacy Policy</h3>
-        <p>We collect minimal data: calculator inputs are processed client-side and not stored. Optional contact form data is stored securely and not shared with third parties. We use privacy-respecting analytics (cookieless).</p>
-        <p>We comply with the Information Technology (Amendment) Act, 2008 and the upcoming Digital Personal Data Protection Act, 2023 (India). By using this site you agree to our privacy practices.</p>
+        <p>We collect no personal data whatsoever. All calculator inputs and results are processed entirely in your browser (client-side) and are never transmitted to, or stored on, any server. There is no contact form, no account creation, and no tracking or analytics of any kind.</p>
+        <p>We comply with the Information Technology (Amendment) Act, 2008 and the Digital Personal Data Protection Act, 2023 (India). Since no personal data is collected, none is processed, stored, or shared with third parties.</p>
       </div>
       <div class="legal-card glass">
         <h3>Terms of Use</h3>
@@ -315,38 +319,9 @@
       </div>
       <div class="legal-card glass">
         <h3>Cookie Policy</h3>
-        <p>We use strictly necessary cookies for site functionality. With your consent, we may load analytics scripts. We do not use advertising or tracking cookies. You may withdraw consent at any time by clearing site cookies.</p>
+        <p>We do not use cookies, analytics, or advertising trackers of any kind. The site only uses your browser's local storage to remember display preferences (like dark mode) on your device — this data never leaves your browser and can be cleared anytime from your browser settings.</p>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- ===== CONTACT ===== -->
-<section id="contact" class="section section-alt" aria-labelledby="contact-heading">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-tag">Contact</span>
-      <h2 id="contact-heading">Get in Touch</h2>
-      <p class="section-subtitle">Questions, suggestions, or data corrections? We'd love to hear from you.</p>
-    </div>
-    <form class="contact-form glass" id="contact-form" novalidate aria-label="Contact form">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="contact-name">Name</label>
-          <input type="text" id="contact-name" name="name" class="input" placeholder="Your name" required autocomplete="name" />
-        </div>
-        <div class="form-group">
-          <label for="contact-email">Email</label>
-          <input type="email" id="contact-email" name="email" class="input" placeholder="you@example.com" required autocomplete="email" />
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="contact-msg">Message</label>
-        <textarea id="contact-msg" name="message" class="input" rows="4" placeholder="Your message…" required></textarea>
-      </div>
-      <button type="submit" class="btn btn-primary">Send Message</button>
-      <p id="contact-status" class="form-status" role="status" aria-live="polite"></p>
-    </form>
   </div>
 </section>
 

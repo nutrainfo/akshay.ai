@@ -6,7 +6,6 @@
 /* ---- Global State ---- */
 const App = {
   currentCalc: null,
-  analyticsConsent: false,
   reducedMotion: false,
 };
 
@@ -79,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCalcGrid();
   initCalcFilters();
   initCompare();
-  initContactForm();
   initRevealAnimations();
   initHeroCanvas();
 });
@@ -114,15 +112,9 @@ function scrollToSection(id) {
 function initCookieBanner() {
   const banner = document.getElementById('cookie-banner');
   const accept = document.getElementById('cookie-accept');
-  const decline = document.getElementById('cookie-decline');
   if (localStorage.getItem('cookieConsent')) { banner.style.display = 'none'; return; }
   accept?.addEventListener('click', () => {
-    localStorage.setItem('cookieConsent', 'accepted');
-    App.analyticsConsent = true;
-    banner.style.display = 'none';
-  });
-  decline?.addEventListener('click', () => {
-    localStorage.setItem('cookieConsent', 'declined');
+    localStorage.setItem('cookieConsent', 'dismissed');
     banner.style.display = 'none';
   });
 }
@@ -976,18 +968,24 @@ function initCompare() {
 }
 
 const INSTRUMENT_PARAMS = {
-  conservative: { sip: 9, fd: 7.2, lumpsum: 9, gold: 8, nps: 9, ppf: 7.1 },
-  moderate:     { sip:12, fd: 7.2, lumpsum:12, gold:10, nps:11, ppf: 7.1 },
-  aggressive:   { sip:16, fd: 7.2, lumpsum:16, gold:10, nps:13, ppf: 7.1 },
+  conservative: { sip: 9, fd: 7.2, lumpsum: 9, gold: 8, nps: 9, ppf: 7.1, rd: 7, elss: 9, debt: 7, realestate: 7, crypto: 10, ssy: 8.2 },
+  moderate:     { sip:12, fd: 7.2, lumpsum:12, gold:10, nps:11, ppf: 7.1, rd: 7, elss:13, debt: 7.5, realestate: 9, crypto: 18, ssy: 8.2 },
+  aggressive:   { sip:16, fd: 7.2, lumpsum:16, gold:10, nps:13, ppf: 7.1, rd: 7, elss:17, debt: 8, realestate:11, crypto: 28, ssy: 8.2 },
 };
 
 const INSTRUMENT_META = {
-  sip:      { label:'SIP (MF)',      liquidity:'High',   risk:'Market Risk' },
-  fd:       { label:'Fixed Deposit', liquidity:'Low',    risk:'Very Low' },
-  lumpsum:  { label:'Lumpsum (MF)',  liquidity:'High',   risk:'Market Risk' },
-  gold:     { label:'Gold',          liquidity:'Medium', risk:'Medium' },
-  nps:      { label:'NPS',           liquidity:'Very Low',risk:'Market Risk' },
-  ppf:      { label:'PPF',           liquidity:'Low',    risk:'None' },
+  sip:        { label:'SIP (MF)',       liquidity:'High',    risk:'Market Risk' },
+  fd:         { label:'Fixed Deposit',  liquidity:'Low',     risk:'Very Low' },
+  lumpsum:    { label:'Lumpsum (MF)',   liquidity:'High',    risk:'Market Risk' },
+  gold:       { label:'Gold',           liquidity:'Medium',  risk:'Medium' },
+  nps:        { label:'NPS',            liquidity:'Very Low',risk:'Market Risk' },
+  ppf:        { label:'PPF',            liquidity:'Low',     risk:'None' },
+  rd:         { label:'RD',             liquidity:'Low',     risk:'Very Low' },
+  elss:       { label:'ELSS (MF)',      liquidity:'Medium',  risk:'Market Risk' },
+  debt:       { label:'Debt Fund',      liquidity:'High',    risk:'Low' },
+  realestate: { label:'Real Estate',    liquidity:'Very Low',risk:'Medium' },
+  crypto:     { label:'Crypto',         liquidity:'High',    risk:'Very High' },
+  ssy:        { label:'Sukanya Samriddhi', liquidity:'Very Low', risk:'None' },
 };
 
 function runComparison() {
@@ -1007,6 +1005,17 @@ function runComparison() {
     else if (inst === 'gold') fv = FC.lumpsumFV(amount, rate, horizon);
     else if (inst === 'nps') fv = FC.sipFV(monthlyInv, rate, horizon) * 1.15;
     else if (inst === 'ppf') fv = FC.ppfFV(amount, Math.min(horizon, 30));
+    else if (inst === 'rd') fv = FC.rdFV(monthlyInv, rate, horizon * 12);
+    else if (inst === 'elss') fv = FC.sipFV(monthlyInv, rate, horizon);
+    else if (inst === 'debt') fv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'realestate') fv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'crypto') fv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'ssy') {
+      let corpus = 0;
+      for (let y = 0; y < Math.min(horizon, 15); y++) corpus = (corpus + amount) * (1 + rate);
+      if (horizon > 15) corpus *= Math.pow(1 + rate, horizon - 15);
+      fv = corpus;
+    }
     const meta = INSTRUMENT_META[inst];
     return { inst, fv, rate, meta };
   });
@@ -1046,28 +1055,6 @@ function runComparison() {
 /* ============================================================
    CONTACT FORM
    ============================================================ */
-function initContactForm() {
-  document.getElementById('contact-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const status = document.getElementById('contact-status');
-    const data = Object.fromEntries(new FormData(e.target));
-    if (!data.name || !data.email || !data.message) {
-      status.textContent = 'Please fill in all fields.'; status.className = 'form-status error'; return;
-    }
-    status.textContent = 'Sending…'; status.className = 'form-status';
-    try {
-      /* Replace with your API endpoint */
-      await new Promise(r => setTimeout(r, 800));
-      status.textContent = 'Message sent! We\'ll get back to you within 24 hours.';
-      status.className = 'form-status success';
-      e.target.reset();
-    } catch {
-      status.textContent = 'Failed to send. Please email us directly.';
-      status.className = 'form-status error';
-    }
-  });
-}
-
 /* ============================================================
    HERO CANVAS — Particle animation
    ============================================================ */
