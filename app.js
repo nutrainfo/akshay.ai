@@ -1340,7 +1340,17 @@ function observeReveal() {
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
   }, { threshold: 0.1 });
-  document.querySelectorAll('.reveal:not(.visible)').forEach(el => io.observe(el));
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => {
+    /* IntersectionObserver callbacks can be throttled on inactive/background
+       tabs, leaving above-the-fold content stuck invisible until interaction.
+       Reveal anything already on/near screen immediately as a safe fallback. */
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      el.classList.add('visible');
+    } else {
+      io.observe(el);
+    }
+  });
 }
 
 function initRevealAnimations() {
@@ -1348,6 +1358,11 @@ function initRevealAnimations() {
     el.classList.add('reveal');
   });
   observeReveal();
+  /* Safety net: force-reveal anything still hidden after layout settles
+     (e.g. web fonts shifting content, or a throttled/missed observer). */
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.visible)').forEach(el => el.classList.add('visible'));
+  }, 1500);
 }
 
 /* ---- Deep-link to calculator on page load ---- */
