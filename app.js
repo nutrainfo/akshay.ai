@@ -1,6 +1,6 @@
 /* ============================================================
    FinCalc Pro — app.js
-   Main application: calculators, markets, banks, MF, compare
+   Main application: calculators, markets, compare
    ============================================================ */
 
 /* ---- Global State ---- */
@@ -11,9 +11,6 @@ const App = {
   marketInterval: null,
   analyticsConsent: false,
   reducedMotion: false,
-  bankSortDir: {},
-  activeBankTab: 'fd',
-  activeMfTab: 'all',
 };
 
 /* ============================================================
@@ -70,9 +67,6 @@ const CALCULATORS = [
   { id:'fd', name:'FD Calculator', cat:'savings', desc:'FD maturity with compounding frequency & TDS deduction' },
   { id:'rd', name:'RD Calculator', cat:'savings', desc:'Recurring deposit maturity value' },
   { id:'ppf', name:'PPF Calculator', cat:'savings', desc:'PPF 15-year maturity with annual contribution' },
-  { id:'tax', name:'Old vs New Tax Regime', cat:'tax', desc:'Compare old & new income tax regimes for FY 2026-27' },
-  { id:'income-tax', name:'Income Tax Estimator', cat:'tax', desc:'Salary, HRA, LTA and deduction-based tax calculator' },
-  { id:'capital-gains', name:'Capital Gains Tax', cat:'tax', desc:'STCG & LTCG for equity, debt and real estate' },
   { id:'nps', name:'NPS Calculator', cat:'retirement', desc:'NPS Tier I corpus with tax savings and annuity projection' },
   { id:'retirement', name:'Retirement Corpus', cat:'retirement', desc:'Inflation-adjusted retirement corpus & required SIP' },
   { id:'child-edu', name:'Child Education Planner', cat:'investment', desc:'Future cost of education with required SIP' },
@@ -87,10 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeader();
   renderCalcGrid();
   initCalcFilters();
-  initBanks();
-  initMutualFunds();
   initMarkets();
-  initITRTabs();
   initCompare();
   initContactForm();
   initRevealAnimations();
@@ -250,7 +241,7 @@ function modalEscHandler(e) { if (e.key === 'Escape') closeModal(); }
 
 /* ---- Build calculator UI ---- */
 function buildCalcUI(id) {
-  const builders = { sip: uiSIP, 'step-sip': uiStepSIP, lumpsum: uiLumpsum, swp: uiSWP, 'sip-vs-lumpsum': uiSIPvsLumpsum, 'sip-goal': uiSIPGoal, 'sip-ladder': uiSIPLadder, 'home-loan': uiHomeLoan, 'car-loan': uiCarLoan, 'edu-loan': uiEduLoan, prepayment: uiPrepayment, fd: uiFD, rd: uiRD, ppf: uiPPF, tax: uiTax, 'income-tax': uiIncomeTax, 'capital-gains': uiCapitalGains, nps: uiNPS, retirement: uiRetirement, 'child-edu': uiChildEdu };
+  const builders = { sip: uiSIP, 'step-sip': uiStepSIP, lumpsum: uiLumpsum, swp: uiSWP, 'sip-vs-lumpsum': uiSIPvsLumpsum, 'sip-goal': uiSIPGoal, 'sip-ladder': uiSIPLadder, 'home-loan': uiHomeLoan, 'car-loan': uiCarLoan, 'edu-loan': uiEduLoan, prepayment: uiPrepayment, fd: uiFD, rd: uiRD, ppf: uiPPF, nps: uiNPS, retirement: uiRetirement, 'child-edu': uiChildEdu };
   return builders[id] ? builders[id]() : '<p>Calculator coming soon.</p>';
 }
 
@@ -561,74 +552,6 @@ function uiPPF() {
   </div>`;
 }
 
-function uiTax() {
-  return `<div class="calc-layout">
-    <div class="calc-inputs">
-      ${sliderField('tx-income','Annual Income (₹)','0','5000000','10000','800000')}
-      ${sliderField('tx-80c','80C Investments (₹)','0','150000','1000','150000')}
-      ${sliderField('tx-80d','80D Health Insurance (₹)','0','75000','1000','25000')}
-      ${sliderField('tx-hra','HRA Exemption (₹)','0','600000','1000','0')}
-      ${sliderField('tx-lta','LTA Exemption (₹)','0','100000','1000','0')}
-    </div>
-    <div class="calc-output">
-      <div class="result-card">
-        <div class="result-grid">
-          <div class="result-item"><div class="result-item-val" id="tx-old-tax">--</div><div class="result-item-label">Old Regime Tax</div></div>
-          <div class="result-item"><div class="result-item-val" id="tx-new-tax">--</div><div class="result-item-label">New Regime Tax</div></div>
-          <div class="result-item"><div class="result-item-val" id="tx-old-taxable">--</div><div class="result-item-label">Old Taxable Income</div></div>
-          <div class="result-item"><div class="result-item-val" id="tx-new-taxable">--</div><div class="result-item-label">New Taxable Income</div></div>
-          <div class="result-item" style="grid-column:1/-1"><div class="result-item-val" id="tx-better">--</div><div class="result-item-label">Better Regime</div></div>
-        </div>
-      </div>
-      <div class="calc-explanation" id="tx-explain"></div>
-    </div>
-  </div>`;
-}
-
-function uiIncomeTax() {
-  return `<div class="calc-layout">
-    <div class="calc-inputs">
-      ${sliderField('it-salary','Gross Salary (₹)','0','5000000','10000','600000')}
-      ${sliderField('it-80c','Section 80C (₹)','0','150000','1000','150000')}
-      ${sliderField('it-80d','Section 80D (₹)','0','75000','1000','25000')}
-      ${sliderField('it-hra','HRA Exemption (₹)','0','600000','1000','0')}
-    </div>
-    <div class="calc-output">
-      <div class="result-card"><div class="result-label">Total Tax Payable (Old Regime)</div><div class="result-main" id="it-tax">₹--</div>
-        <div class="result-grid">
-          <div class="result-item"><div class="result-item-val" id="it-taxable">--</div><div class="result-item-label">Taxable Income</div></div>
-          <div class="result-item"><div class="result-item-val" id="it-effective">--</div><div class="result-item-label">Effective Rate</div></div>
-          <div class="result-item"><div class="result-item-val" id="it-take-home">--</div><div class="result-item-label">Take-home (Annual)</div></div>
-        </div>
-      </div>
-      <div class="calc-explanation" id="it-explain"></div>
-    </div>
-  </div>`;
-}
-
-function uiCapitalGains() {
-  return `<div class="calc-layout">
-    <div class="calc-inputs">
-      ${field('cg-type','Asset Type','select','',[['equity','Equity / MF'],['debt','Debt / Real Estate']],'equity')}
-      ${field('cg-buy','Buy Price per Unit (₹)','number','100',null,'100')}
-      ${field('cg-sell','Sell Price per Unit (₹)','number','100',null,'200')}
-      ${field('cg-units','Number of Units','number','1',null,'100')}
-      ${sliderField('cg-months','Holding Period (Months)','1','120','1','13')}
-    </div>
-    <div class="calc-output">
-      <div class="result-card">
-        <div class="result-grid">
-          <div class="result-item"><div class="result-item-val" id="cg-gain">--</div><div class="result-item-label">Total Gain/Loss</div></div>
-          <div class="result-item"><div class="result-item-val" id="cg-type-val">--</div><div class="result-item-label">Gain Type</div></div>
-          <div class="result-item"><div class="result-item-val" id="cg-tax">--</div><div class="result-item-label">Tax Payable</div></div>
-          <div class="result-item"><div class="result-item-val" id="cg-net">--</div><div class="result-item-label">Net Gain</div></div>
-        </div>
-      </div>
-      <div class="calc-explanation" id="cg-explain"></div>
-    </div>
-  </div>`;
-}
-
 function uiNPS() {
   return `<div class="calc-layout">
     <div class="calc-inputs">
@@ -877,43 +800,6 @@ function calcLive(id) {
       set('ppf-explain', `PPF is a government-backed EEE instrument (Exempt-Exempt-Exempt): contribution, interest and maturity are all tax-free. Current rate: 7.1% p.a. Minimum tenure: 15 years (extendable in 5-year blocks).`);
       break;
     }
-    case 'tax': {
-      const income = get('tx-income',800000), c80 = get('tx-80c',150000), c80d = get('tx-80d',25000), hra = get('tx-hra',0), lta = get('tx-lta',0);
-      const oldRes = FC.taxOldRegime(income, {sec80c:c80, sec80d:c80d, hra, lta});
-      const newRes = FC.taxNewRegime(income);
-      set('tx-old-tax', fmt(oldRes.tax));
-      set('tx-new-tax', fmt(newRes.tax));
-      set('tx-old-taxable', fmt(oldRes.taxableIncome));
-      set('tx-new-taxable', fmt(newRes.taxableIncome));
-      const better = oldRes.tax <= newRes.tax ? 'Old Regime saves ' + fmt(newRes.tax - oldRes.tax) : 'New Regime saves ' + fmt(oldRes.tax - newRes.tax);
-      set('tx-better', better);
-      set('tx-explain', `FY 2026-27 — Old Regime Tax: ${fmt(oldRes.tax)} on taxable income of ${fmt(oldRes.taxableIncome)}. New Regime Tax: ${fmt(newRes.tax)} on ${fmt(newRes.taxableIncome)}. ${better}. New regime: zero tax up to ₹12.75L gross; slabs 5%–30% from ₹4L; 87A rebate ₹60k. Old regime: standard deduction ₹50k + 80C/80D deductions.`);
-      break;
-    }
-    case 'income-tax': {
-      const salary = get('it-salary',600000), c80 = get('it-80c',150000), c80d = get('it-80d',25000), hra = get('it-hra',0);
-      const res = FC.taxOldRegime(salary, {sec80c:c80, sec80d:c80d, hra});
-      const effectiveRate = salary > 0 ? (res.tax / salary * 100).toFixed(2) : 0;
-      set('it-tax', fmt(res.tax));
-      set('it-taxable', fmt(res.taxableIncome));
-      set('it-effective', effectiveRate + '%');
-      set('it-take-home', fmt(salary - res.tax));
-      set('it-explain', `Gross salary ${fmt(salary)} minus standard deduction (₹50k), 80C (${fmt(c80)}), 80D (${fmt(c80d)}), HRA (${fmt(hra)}) = taxable income ${fmt(res.taxableIncome)}. Tax: ${fmt(res.tax)}.`);
-      break;
-    }
-    case 'capital-gains': {
-      const assetType = document.getElementById('cg-type')?.value || 'equity';
-      const buy = get('cg-buy',100), sell = get('cg-sell',200), units = get('cg-units',100), months = get('cg-months',13);
-      const res = FC.capitalGains(buy, sell, units, months, assetType);
-      set('cg-gain', fmt(res.gain));
-      set('cg-type-val', res.isLongTerm ? (assetType==='equity' ? 'LTCG (>12m)' : 'LTCG (>36m)') : 'STCG');
-      set('cg-tax', fmt(res.tax));
-      set('cg-net', fmt(res.netGain));
-      set('cg-explain', res.isLongTerm
-        ? (assetType==='equity' ? `LTCG on equity: 12.5% on gains above ₹1.25 lakh exemption (${fmt(res.exemption)} exempt). Tax: ${fmt(res.tax)}. (Budget 2024 rates)` : `LTCG on debt: 12.5% without indexation (Budget 2024). Tax: ${fmt(res.tax)}.`)
-        : (assetType==='equity' ? `STCG on equity: flat 20% (Budget 2024). Tax: ${fmt(res.tax)}.` : `STCG on debt: taxed as per income slab. Tax: ${fmt(res.tax)} (estimated at 30%).`));
-      break;
-    }
     case 'nps': {
       const monthly = get('nps-monthly',5000), employer = get('nps-employer',0), rate = get('nps-rate',10)/100, years = get('nps-years',25), taxBracket = get('nps-tax',0.30);
       const res = FC.npsFV(monthly, employer, rate, years, taxBracket);
@@ -1116,114 +1002,6 @@ function shareCalc(calcId) {
 /* ============================================================
    BANKS & RATES
    ============================================================ */
-function initBanks() {
-  renderBanks('fd');
-  document.querySelectorAll('[data-tab]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('[data-tab]').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
-      tab.classList.add('active'); tab.setAttribute('aria-selected','true');
-      App.activeBankTab = tab.dataset.tab;
-      renderBanks(tab.dataset.tab);
-    });
-  });
-  document.getElementById('bank-search')?.addEventListener('input', (e) => renderBanks(App.activeBankTab, e.target.value.toLowerCase()));
-  document.getElementById('compare-banks-btn')?.addEventListener('click', compareBanks);
-  document.getElementById('rates-updated').textContent = BANK_DATA.lastUpdated;
-}
-
-function renderBanks(tab, search = '') {
-  const tbody = document.getElementById('banks-tbody');
-  if (!tbody) return;
-  const data = BANK_DATA[tab]?.filter(b => b.name.toLowerCase().includes(search)) || [];
-
-  if (tab === 'fd') {
-    tbody.innerHTML = data.map(b => `
-      <tr>
-        <td><input type="checkbox" class="bank-checkbox" data-bank="${b.name}" aria-label="Select ${b.name}" /></td>
-        <td><div class="bank-logo"><div class="bank-logo-icon" style="background:${b.color}20;color:${b.color}">${b.abbr.slice(0,3)}</div>${b.name}</div></td>
-        <td><span class="rate-badge">${b.y1}%</span></td>
-        <td>${b.y2}%</td><td>${b.y3}%</td><td>${b.y5}%</td>
-        <td><span class="senior-badge">+${(b.senior - b.y1).toFixed(2)}%</span></td>
-        <td style="color:var(--text3);font-size:.78rem">${BANK_DATA.lastUpdated}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="openCalc('fd')">Calculate</button></td>
-      </tr>`).join('');
-  } else if (tab === 'savings') {
-    tbody.innerHTML = data.map(b => `
-      <tr>
-        <td><input type="checkbox" class="bank-checkbox" data-bank="${b.name}" aria-label="Select ${b.name}" /></td>
-        <td><div class="bank-logo"><div class="bank-logo-icon" style="background:${b.color}20;color:${b.color}">${b.abbr.slice(0,3)}</div>${b.name}</div></td>
-        <td><span class="rate-badge">${b.standard}%</span></td>
-        <td><span class="rate-badge">${b.above1L}%</span></td>
-        <td>${b.senior}%</td>
-        <td></td><td></td>
-        <td style="color:var(--text3);font-size:.78rem">${BANK_DATA.lastUpdated}</td>
-        <td></td>
-      </tr>`).join('');
-    document.querySelector('#banks-table thead tr').innerHTML = `<th><input type="checkbox" /></th><th>Bank</th><th>Standard Rate</th><th>Above ₹1L</th><th>Senior Citizen</th><th></th><th></th><th>Updated</th><th></th>`;
-  } else {
-    tbody.innerHTML = data.map(b => `
-      <tr>
-        <td><input type="checkbox" class="bank-checkbox" data-bank="${b.name}" aria-label="Select ${b.name}" /></td>
-        <td><div class="bank-logo"><div class="bank-logo-icon" style="background:${b.color}20;color:${b.color}">${b.abbr.slice(0,3)}</div>${b.name}</div></td>
-        <td><span class="rate-badge">${b.home ?? '--'}%</span></td>
-        <td>${b.car ?? '--'}%</td>
-        <td>${b.personal ?? '--'}%</td>
-        <td></td><td></td>
-        <td style="color:var(--text3);font-size:.78rem">${BANK_DATA.lastUpdated}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="openCalc('home-loan')">Calculate</button></td>
-      </tr>`).join('');
-    document.querySelector('#banks-table thead tr').innerHTML = `<th><input type="checkbox" /></th><th>Bank</th><th>Home Loan</th><th>Car Loan</th><th>Personal Loan</th><th></th><th></th><th>Updated</th><th></th>`;
-  }
-}
-
-function compareBanks() {
-  const selected = [...document.querySelectorAll('.bank-checkbox:checked')].map(cb => cb.dataset.bank);
-  if (selected.length < 2) { alert('Select at least 2 banks to compare.'); return; }
-  alert(`Comparing: ${selected.join(', ')}\n\n(Full comparison panel coming soon. Use our Compare tool for detailed analysis.)`);
-}
-
-/* ============================================================
-   MUTUAL FUNDS
-   ============================================================ */
-function initMutualFunds() {
-  renderMF('all');
-  document.querySelectorAll('[data-mftab]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('[data-mftab]').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
-      tab.classList.add('active'); tab.setAttribute('aria-selected','true');
-      App.activeMfTab = tab.dataset.mftab;
-      renderMF(tab.dataset.mftab, document.getElementById('mf-search')?.value || '');
-    });
-  });
-  document.getElementById('mf-search')?.addEventListener('input', (e) => renderMF(App.activeMfTab, e.target.value.toLowerCase()));
-}
-
-function renderMF(cat, search = '') {
-  const grid = document.getElementById('mf-grid');
-  if (!grid) return;
-  const data = MF_DATA.filter(f => (cat === 'all' || f.cat === cat) && (f.name.toLowerCase().includes(search) || f.amc.toLowerCase().includes(search)));
-  const riskClass = { low:'risk-low', mod:'risk-mod', high:'risk-high', vhigh:'risk-vhigh' };
-  const riskLabel = { low:'Low Risk', mod:'Moderate', high:'High Risk', vhigh:'Very High' };
-  grid.innerHTML = data.map(f => `
-    <div class="mf-card reveal" role="listitem">
-      <div class="mf-header">
-        <div><div class="mf-name">${f.name}</div><div class="mf-amc">${f.amc}</div></div>
-        <span class="mf-risk ${riskClass[f.risk]}">${riskLabel[f.risk]}</span>
-      </div>
-      <div class="mf-returns">
-        <div class="mf-ret"><div class="mf-ret-val${f.ret1 < 0 ? ' neg' : ''}">${f.ret1.toFixed(1)}%</div><div class="mf-ret-label">1Y</div></div>
-        <div class="mf-ret"><div class="mf-ret-val${f.ret3 < 0 ? ' neg' : ''}">${f.ret3.toFixed(1)}%</div><div class="mf-ret-label">3Y</div></div>
-        <div class="mf-ret"><div class="mf-ret-val${f.ret5 < 0 ? ' neg' : ''}">${f.ret5.toFixed(1)}%</div><div class="mf-ret-label">5Y</div></div>
-      </div>
-      <div class="mf-meta"><span>AUM: <strong class="mf-aum">${f.aum}</strong></span><span class="calc-tag tag-${f.cat}">${f.cat}</span></div>
-      <div class="mf-actions">
-        <button class="btn-groww" onclick="window.open('https://groww.in/mutual-funds','_blank')" aria-label="View mutual funds on Groww">View on Groww</button>
-        <button class="btn btn-ghost btn-sm" onclick="openCalc('sip')">SIP Calculator</button>
-      </div>
-    </div>`).join('');
-  observeReveal();
-}
-
 /* ============================================================
    MARKETS — LIVE DATA (Fallback mock with realistic values)
    ============================================================ */
@@ -1372,17 +1150,6 @@ function duplicateTicker() {
 /* ============================================================
    ITR TABS
    ============================================================ */
-function initITRTabs() {
-  document.querySelectorAll('[data-itrtab]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('[data-itrtab]').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
-      tab.classList.add('active'); tab.setAttribute('aria-selected','true');
-      document.querySelectorAll('.itr-content').forEach(c => c.classList.add('hidden'));
-      document.getElementById(`itr-${tab.dataset.itrtab}`)?.classList.remove('hidden');
-    });
-  });
-}
-
 /* ============================================================
    COMPARE ENGINE
    ============================================================ */
@@ -1400,19 +1167,18 @@ const INSTRUMENT_PARAMS = {
 };
 
 const INSTRUMENT_META = {
-  sip:      { label:'SIP (MF)',      liquidity:'High',   risk:'Market Risk',  taxNote:'LTCG 12.5% (>₹1.25L)' },
-  fd:       { label:'Fixed Deposit', liquidity:'Low',    risk:'Very Low',     taxNote:'Taxed as income' },
-  lumpsum:  { label:'Lumpsum (MF)',  liquidity:'High',   risk:'Market Risk',  taxNote:'LTCG 12.5% (>₹1.25L)' },
-  gold:     { label:'Gold',          liquidity:'Medium', risk:'Medium',       taxNote:'LTCG 20%+indexation' },
-  nps:      { label:'NPS',           liquidity:'Very Low',risk:'Market Risk', taxNote:'60% tax-free' },
-  ppf:      { label:'PPF',           liquidity:'Low',    risk:'None',         taxNote:'EEE (Fully tax-free)' },
+  sip:      { label:'SIP (MF)',      liquidity:'High',   risk:'Market Risk' },
+  fd:       { label:'Fixed Deposit', liquidity:'Low',    risk:'Very Low' },
+  lumpsum:  { label:'Lumpsum (MF)',  liquidity:'High',   risk:'Market Risk' },
+  gold:     { label:'Gold',          liquidity:'Medium', risk:'Medium' },
+  nps:      { label:'NPS',           liquidity:'Very Low',risk:'Market Risk' },
+  ppf:      { label:'PPF',           liquidity:'Low',    risk:'None' },
 };
 
 function runComparison() {
   const amount = parseFloat(document.getElementById('cmp-amount')?.value) || 100000;
   const horizon = parseFloat(document.getElementById('cmp-horizon')?.value) || 10;
   const risk = document.getElementById('cmp-risk')?.value || 'moderate';
-  const taxBracket = parseFloat(document.getElementById('cmp-tax')?.value) || 30;
   const selected = [...document.querySelectorAll('.chip.active')].map(c => c.dataset.inst).slice(0, 3);
   if (!selected.length) { alert('Select at least one instrument.'); return; }
 
@@ -1421,7 +1187,7 @@ function runComparison() {
     const rate = rates[inst] / 100;
     let fv, monthlyInv = amount / (horizon * 12);
     if (inst === 'sip') fv = FC.sipFV(monthlyInv, rate, horizon);
-    else if (inst === 'fd') fv = FC.fdFV(amount, rate, horizon, 4, taxBracket/1000).netFV;
+    else if (inst === 'fd') fv = FC.fdFV(amount, rate, horizon, 4, 0).grossFV;
     else if (inst === 'lumpsum') fv = FC.lumpsumFV(amount, rate, horizon);
     else if (inst === 'gold') fv = FC.lumpsumFV(amount, rate, horizon);
     else if (inst === 'nps') fv = FC.sipFV(monthlyInv, rate, horizon) * 1.15;
@@ -1444,7 +1210,6 @@ function runComparison() {
     ['CAGR', r => `${(r.rate*100).toFixed(1)}% p.a.`],
     ['Liquidity', r => r.meta.liquidity],
     ['Risk Level', r => r.meta.risk],
-    ['Tax Treatment', r => r.meta.taxNote],
   ];
 
   tbody.innerHTML = metrics.map(([label, fn]) =>

@@ -626,25 +626,6 @@ const EXTRA_CALC_DEFS_2 = [
 
   /* ---------------- PERSONAL (freelance, events, utility) ---------------- */
   {
-    id: 'freelancer-tax-estimate', name: 'Freelancer Tax Estimator', cat: 'personal',
-    desc: 'Presumptive taxation (44ADA) estimate for freelancers',
-    inputs: [
-      { id: 'income', label: 'Annual Gross Receipts (₹)', min: 100000, max: 10000000, step: 10000, def: 1200000 },
-      { id: 'expensePercent', label: 'Presumptive Expense Deduction (%)', min: 0, max: 60, step: 5, def: 50 },
-      { id: 'taxSlab', label: 'Applicable Tax Slab (%)', type: 'select', options: [['0', '0%'], ['5', '5%'], ['20', '20%'], ['30', '30%']], def: '20' },
-    ],
-    mainLabel: 'Estimated Tax',
-    compute(v) {
-      const taxableIncome = v.income * (1 - v.expensePercent / 100);
-      const tax = taxableIncome * (v.taxSlab / 100);
-      return {
-        main: FC.formatINR(tax),
-        items: [{ label: 'Taxable Income (u/s 44ADA)', value: FC.formatINR(taxableIncome) }],
-        explain: `Under presumptive taxation, ${v.expensePercent}% of ${FC.formatINR(v.income)} is deemed expense, leaving ${FC.formatINR(taxableIncome)} taxable at ~${v.taxSlab}% = ${FC.formatINR(tax)} (illustrative, ignores slabs/cess).`,
-      };
-    },
-  },
-  {
     id: 'hourly-rate-calculator', name: 'Freelance Hourly Rate Calculator', cat: 'personal',
     desc: 'Hourly rate needed to hit a target annual income',
     inputs: [
@@ -660,24 +641,6 @@ const EXTRA_CALC_DEFS_2 = [
         main: FC.formatINR(rate),
         items: [{ label: 'Total Billable Hours/Year', value: totalHours.toLocaleString('en-IN') }],
         explain: `To earn ${FC.formatINR(v.targetIncome)}/year billing ${v.hoursPerWeek} hrs/week for ${v.weeksPerYear} weeks, charge ${FC.formatINR(rate)}/hour.`,
-      };
-    },
-  },
-  {
-    id: 'invoice-gst-freelancer', name: 'Freelancer GST Invoice Calculator', cat: 'personal',
-    desc: 'Total invoice amount including GST for services',
-    inputs: [
-      { id: 'serviceAmount', label: 'Service Amount (₹)', min: 500, max: 5000000, step: 500, def: 50000 },
-      { id: 'gstRate', label: 'GST Rate (%)', type: 'select', options: [['0', '0% (Exempt)'], ['18', '18%']], def: '18' },
-    ],
-    mainLabel: 'Total Invoice Amount',
-    compute(v) {
-      const gst = v.serviceAmount * (v.gstRate / 100);
-      const total = v.serviceAmount + gst;
-      return {
-        main: FC.formatINR(total),
-        items: [{ label: 'GST Amount', value: FC.formatINR(gst) }],
-        explain: `A service invoice of ${FC.formatINR(v.serviceAmount)} plus ${v.gstRate}% GST (${FC.formatINR(gst)}) totals ${FC.formatINR(total)}.`,
       };
     },
   },

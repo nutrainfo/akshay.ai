@@ -74,33 +74,6 @@ const EXTRA_CALC_DEFS = [
     },
   },
   {
-    id: 'gst', name: 'GST Calculator', cat: 'business',
-    desc: 'Add or remove GST from an amount',
-    inputs: [
-      { id: 'amount', label: 'Amount (₹)', min: 1, max: 10000000, step: 1, def: 10000 },
-      { id: 'rate', label: 'GST Rate (%)', type: 'select', options: [['0', '0%'], ['5', '5%'], ['12', '12%'], ['18', '18%'], ['28', '28%']], def: '18' },
-      { id: 'mode', label: 'Calculation Mode', type: 'select', options: [['exclusive', 'Add GST (amount is pre-GST)'], ['inclusive', 'Remove GST (amount includes GST)']], def: 'exclusive' },
-    ],
-    mainLabel: 'Total Amount',
-    compute(v) {
-      const rate = v.rate / 100;
-      let base, gstAmt, total;
-      if (v.mode === 'exclusive' || isNaN(v.mode)) {
-        base = v.amount; gstAmt = base * rate; total = base + gstAmt;
-      } else {
-        total = v.amount; base = total / (1 + rate); gstAmt = total - base;
-      }
-      return {
-        main: FC.formatINR(total),
-        items: [
-          { label: 'Base Amount', value: FC.formatINR(base) },
-          { label: 'GST Amount', value: FC.formatINR(gstAmt) },
-        ],
-        explain: `At ${(rate * 100).toFixed(0)}% GST, base ${FC.formatINR(base)} + GST ${FC.formatINR(gstAmt)} = ${FC.formatINR(total)}.`,
-      };
-    },
-  },
-  {
     id: 'markup', name: 'Markup Calculator', cat: 'business',
     desc: 'Selling price from cost & desired markup %',
     inputs: [
@@ -575,28 +548,6 @@ const EXTRA_CALC_DEFS = [
     },
   },
   {
-    id: 'crypto-tax', name: 'Crypto Tax Calculator (India)', cat: 'crypto',
-    desc: 'Flat 30% tax + 1% TDS on crypto gains as per Indian law',
-    inputs: [
-      { id: 'buyValue', label: 'Purchase Value (₹)', min: 1000, max: 50000000, step: 1000, def: 500000 },
-      { id: 'sellValue', label: 'Sale Value (₹)', min: 1000, max: 100000000, step: 1000, def: 800000 },
-    ],
-    mainLabel: 'Tax Payable',
-    compute(v) {
-      const gain = Math.max(0, v.sellValue - v.buyValue);
-      const tax = gain * 0.30;
-      const tds = v.sellValue * 0.01;
-      return {
-        main: FC.formatINR(tax),
-        items: [
-          { label: 'TDS Deducted (1%)', value: FC.formatINR(tds) },
-          { label: 'Net Gain After Tax', value: FC.formatINR(gain - tax) },
-        ],
-        explain: `Gains of ${FC.formatINR(gain)} attract a flat 30% tax of ${FC.formatINR(tax)} (no loss set-off allowed), plus 1% TDS of ${FC.formatINR(tds)} on the sale value.`,
-      };
-    },
-  },
-  {
     id: 'crypto-dca', name: 'Crypto Dollar-Cost Averaging Calculator', cat: 'crypto',
     desc: 'Units accumulated & average cost via weekly DCA',
     inputs: [
@@ -749,7 +700,7 @@ const EXTRA_CALC_DEFS = [
     },
   },
 
-  /* ---------------- RETIREMENT / TAX (salary benefits) ---------------- */
+  /* ---------------- RETIREMENT ---------------- */
   {
     id: 'gratuity', name: 'Gratuity Calculator', cat: 'retirement',
     desc: 'Gratuity payable as per Payment of Gratuity Act',
@@ -764,46 +715,6 @@ const EXTRA_CALC_DEFS = [
         main: FC.formatINR(gratuity),
         items: [],
         explain: `Using (15 × last salary × years of service) / 26, gratuity payable is ${FC.formatINR(gratuity)} (capped at ₹20 lakh as per current law).`,
-      };
-    },
-  },
-  {
-    id: 'hra-exemption', name: 'HRA Exemption Calculator', cat: 'tax',
-    desc: 'Tax-exempt House Rent Allowance under old regime',
-    inputs: [
-      { id: 'basic', label: 'Basic Salary (Annual) (₹)', min: 100000, max: 10000000, step: 10000, def: 600000 },
-      { id: 'hra', label: 'HRA Received (Annual) (₹)', min: 0, max: 5000000, step: 10000, def: 240000 },
-      { id: 'rent', label: 'Rent Paid (Annual) (₹)', min: 0, max: 5000000, step: 10000, def: 300000 },
-      { id: 'metro', label: 'City Type', type: 'select', options: [['1', 'Metro (Delhi/Mumbai/Kolkata/Chennai)'], ['0', 'Non-Metro']], def: '1' },
-    ],
-    mainLabel: 'HRA Exemption',
-    compute(v) {
-      const isMetro = v.metro === 1 || v.metro === '1';
-      const basicPct = isMetro ? 0.5 : 0.4;
-      const excessRent = Math.max(0, v.rent - 0.10 * v.basic);
-      const exemption = Math.max(0, Math.min(v.hra, v.basic * basicPct, excessRent));
-      return {
-        main: FC.formatINR(exemption),
-        items: [{ label: 'Taxable HRA', value: FC.formatINR(v.hra - exemption) }],
-        explain: `HRA exemption is the least of: HRA received (${FC.formatINR(v.hra)}), ${(basicPct * 100)}% of basic (${FC.formatINR(v.basic * basicPct)}), or rent minus 10% of basic (${FC.formatINR(excessRent)}) → ${FC.formatINR(exemption)}.`,
-      };
-    },
-  },
-  {
-    id: 'leave-encashment', name: 'Leave Encashment Calculator', cat: 'tax',
-    desc: 'Amount receivable for encashing unused leave',
-    inputs: [
-      { id: 'salary', label: 'Basic Salary (Monthly) (₹)', min: 5000, max: 2000000, step: 1000, def: 50000 },
-      { id: 'days', label: 'Leave Days to Encash', min: 1, max: 300, step: 1, def: 45 },
-    ],
-    mainLabel: 'Encashment Amount',
-    compute(v) {
-      const perDay = v.salary / 30;
-      const amount = perDay * v.days;
-      return {
-        main: FC.formatINR(amount),
-        items: [{ label: 'Per Day Salary', value: FC.formatINR(perDay) }],
-        explain: `At ${FC.formatINR(perDay)}/day, encashing ${v.days} days of leave yields ${FC.formatINR(amount)} (tax treatment depends on employer type).`,
       };
     },
   },
