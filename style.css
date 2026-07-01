@@ -321,6 +321,9 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 .tag-insurance { background: rgba(20,184,166,0.12); color: #14b8a6; }
 .tag-crypto { background: rgba(249,115,22,0.12); color: #f97316; }
 .tag-personal { background: rgba(168,85,247,0.12); color: #a855f7; }
+.tag-stocks { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.tag-startup { background: rgba(244,63,94,0.12); color: #f43f5e; }
+.tag-education { background: rgba(34,197,94,0.12); color: #22c55e; }
 
 /* Per-category icon tint */
 [data-cat="investment"] .calc-icon { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2); color: var(--green); }
@@ -343,6 +346,12 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 [data-cat="insurance"]:hover .calc-icon { background: rgba(20,184,166,0.18); border-color: rgba(20,184,166,0.35); box-shadow: 0 0 16px rgba(20,184,166,0.15); }
 [data-cat="crypto"]:hover .calc-icon { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.35); box-shadow: 0 0 16px rgba(249,115,22,0.15); }
 [data-cat="personal"]:hover .calc-icon { background: rgba(168,85,247,0.18); border-color: rgba(168,85,247,0.35); box-shadow: 0 0 16px rgba(168,85,247,0.15); }
+[data-cat="stocks"] .calc-icon { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.2); color: #3b82f6; }
+[data-cat="startup"] .calc-icon { background: rgba(244,63,94,0.1); border-color: rgba(244,63,94,0.2); color: #f43f5e; }
+[data-cat="education"] .calc-icon { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); color: #22c55e; }
+[data-cat="stocks"]:hover .calc-icon { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.35); box-shadow: 0 0 16px rgba(59,130,246,0.15); }
+[data-cat="startup"]:hover .calc-icon { background: rgba(244,63,94,0.18); border-color: rgba(244,63,94,0.35); box-shadow: 0 0 16px rgba(244,63,94,0.15); }
+[data-cat="education"]:hover .calc-icon { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.35); box-shadow: 0 0 16px rgba(34,197,94,0.15); }
 
 /* ---- Tab group ---- */
 .tab-group { display: flex; gap: 0.25rem; background: var(--surface); border-radius: 10px; padding: 0.25rem; width: fit-content; max-width: 100%; overflow-x: auto; }
