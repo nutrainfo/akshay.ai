@@ -2,7 +2,7 @@
    Strategy: Cache-first for static assets, network-first for API/market data.
    Update cache version to force refresh on deploy. */
 
-const CACHE_VERSION = 'fincalc-v7';
+const CACHE_VERSION = 'fincalc-v8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE   = `${CACHE_VERSION}-data`;
 
@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
   '/calculators/formulas.js',
   '/calculators/extra-calculators.js',
   '/calculators/extra-calculators-2.js',
+  '/calculators/tax-calculators.js',
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap',
 ];

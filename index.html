@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Free Indian financial calculators — SIP, EMI, FD, PPF, live Nifty/Sensex/Gold prices and more. Updated for June 2026." />
-  <meta name="keywords" content="SIP calculator, EMI calculator, FD calculator, Nifty, Sensex, gold price, NPS calculator" />
+  <meta name="description" content="Free Indian financial calculators — SIP, EMI, FD, PPF, income tax (IT Act 2025), live Nifty/Sensex/Gold prices and more. Updated for June 2026." />
+  <meta name="keywords" content="SIP calculator, EMI calculator, FD calculator, income tax calculator, Income Tax Act 2025, Nifty, Sensex, gold price, NPS calculator" />
   <title>FinCalc Pro — Premium Indian Financial Tools</title>
 
   <!-- Canonical & Open Graph -->
   <link rel="canonical" href="https://fincalcpro.in/" />
   <meta property="og:title"       content="FinCalc Pro — Free Indian Financial Calculators" />
-  <meta property="og:description" content="110+ free calculators: SIP, EMI, FD, PPF, NPS, Business, Real Estate, Insurance, Crypto, Stocks, Startup & Education. Live Nifty/Sensex/Gold prices." />
+  <meta property="og:description" content="130+ free calculators: SIP, EMI, FD, Tax (IT Act 2025), PPF, NPS, Business, Real Estate, Insurance, Crypto, Stocks, Startup & Education. Live Nifty/Sensex/Gold prices." />
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="https://fincalcpro.in/" />
   <meta property="og:image"       content="https://fincalcpro.in/assets/icons/icon-512.png" />
@@ -22,7 +22,7 @@
   <!-- Twitter / X Cards -->
   <meta name="twitter:card"        content="summary" />
   <meta name="twitter:title"       content="FinCalc Pro — Free Indian Financial Calculators" />
-  <meta name="twitter:description" content="SIP, EMI, FD, PPF, NPS & 105 more calculators across Business, Real Estate, Insurance, Crypto, Stocks, Startup & Education. Live Nifty/Gold prices. Free forever." />
+  <meta name="twitter:description" content="SIP, EMI, FD, Tax, PPF, NPS & 125 more calculators across Business, Real Estate, Insurance, Crypto, Stocks, Startup & Education. Live Nifty/Gold prices. Free forever." />
   <meta name="twitter:image"       content="https://fincalcpro.in/assets/icons/icon-512.png" />
 
   <!-- JSON-LD: WebSite + SoftwareApplication + FAQPage -->
@@ -33,7 +33,7 @@
       "@type": "WebSite",
       "name": "FinCalc Pro",
       "url": "https://fincalcpro.in",
-      "description": "Free Indian financial calculators — SIP, EMI, FD, NPS, PPF and live market data.",
+      "description": "Free Indian financial calculators — SIP, EMI, FD, NPS, PPF, income tax (IT Act 2025) and live market data.",
       "inLanguage": "en-IN",
       "potentialAction": {
         "@type": "SearchAction",
@@ -48,10 +48,11 @@
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web, Android, iOS",
       "url": "https://fincalcpro.in",
-      "description": "110+ free Indian financial calculators with live Nifty, Sensex and Gold prices.",
+      "description": "130+ free Indian financial calculators with live Nifty, Sensex and Gold prices.",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
       "featureList": [
         "SIP Calculator", "EMI Calculator", "FD Calculator",
+        "New Tax Regime Calculator (Income Tax Act 2025)", "Capital Gains Tax Calculator",
         "NPS Calculator", "PPF Calculator", "Retirement Corpus Planner",
         "Live Nifty 50 and Sensex prices"
       ]
@@ -68,7 +69,7 @@
         {
           "@type": "Question",
           "name": "Is FinCalc Pro free to use?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All 110+ calculators and live market data are completely free with no sign-up required." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All 130+ calculators and live market data are completely free with no sign-up required." }
         }
       ]
     }
@@ -147,13 +148,13 @@
   <div class="hero-content container">
     <div class="hero-badge">India's Most Trusted Financial Calculators</div>
     <h1 class="hero-title">Smart Financial<br><span class="gradient-text">Decisions Start Here</span></h1>
-    <p class="hero-subtitle">110+ precision calculators and live market prices — all in one premium platform.</p>
+    <p class="hero-subtitle">130+ precision calculators and live market prices — all in one premium platform.</p>
     <div class="hero-actions">
       <button class="btn btn-primary btn-lg" onclick="scrollToSection('calculators')">Explore Calculators</button>
       <button class="btn btn-outline btn-lg" onclick="scrollToSection('markets')">Live Markets</button>
     </div>
     <div class="hero-stats">
-      <div class="stat"><span class="stat-val">110+</span><span class="stat-label">Calculators</span></div>
+      <div class="stat"><span class="stat-val">130+</span><span class="stat-label">Calculators</span></div>
       <div class="stat"><span class="stat-val">100%</span><span class="stat-label">Free</span></div>
       <div class="stat"><span class="stat-val">Live</span><span class="stat-label">Market Data</span></div>
     </div>
@@ -211,6 +212,7 @@
       <button class="filter-btn active" data-filter="all">All</button>
       <button class="filter-btn" data-filter="investment">Investment</button>
       <button class="filter-btn" data-filter="loan">Loans</button>
+      <button class="filter-btn" data-filter="tax">Tax</button>
       <button class="filter-btn" data-filter="savings">Savings</button>
       <button class="filter-btn" data-filter="retirement">Retirement</button>
       <button class="filter-btn" data-filter="business">Business</button>
@@ -450,6 +452,7 @@
 <script src="app.js"></script>
 <script src="calculators/extra-calculators.js"></script>
 <script src="calculators/extra-calculators-2.js"></script>
+<script src="calculators/tax-calculators.js"></script>
 <script src="pwa.js"></script>
 </body>
 </html>

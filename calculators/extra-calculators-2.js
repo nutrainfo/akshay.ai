@@ -468,26 +468,6 @@ const EXTRA_CALC_DEFS_2 = [
     },
   },
   {
-    id: 'study-abroad-cost', name: 'Study Abroad Cost Calculator', cat: 'education',
-    desc: 'Total INR cost of studying abroad over the course',
-    inputs: [
-      { id: 'tuition', label: 'Tuition per Year (Foreign Currency)', min: 1000, max: 200000, step: 1000, def: 30000 },
-      { id: 'living', label: 'Living Cost per Year (Foreign Currency)', min: 1000, max: 100000, step: 500, def: 15000 },
-      { id: 'years', label: 'Course Duration (Years)', min: 1, max: 6, step: 0.5, def: 2 },
-      { id: 'fxRate', label: 'Exchange Rate (₹ per unit)', min: 1, max: 300, step: 0.5, def: 84 },
-    ],
-    mainLabel: 'Total Cost in INR',
-    compute(v) {
-      const totalForeign = (v.tuition + v.living) * v.years;
-      const totalINR = totalForeign * v.fxRate;
-      return {
-        main: FC.formatINR(totalINR),
-        items: [{ label: 'Per Year Cost (INR)', value: FC.formatINR((v.tuition + v.living) * v.fxRate) }],
-        explain: `Over ${v.years} years at an exchange rate of ${v.fxRate}, total cost is approximately ${FC.formatINR(totalINR)}.`,
-      };
-    },
-  },
-  {
     id: 'skill-course-roi', name: 'Skill Course ROI Calculator', cat: 'education',
     desc: 'Payback period for an upskilling course investment',
     inputs: [
