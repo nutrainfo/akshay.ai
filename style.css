@@ -316,6 +316,11 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 .tag-tax { background: rgba(245,158,11,0.12); color: var(--yellow); }
 .tag-savings { background: rgba(99,102,241,0.12); color: var(--accent); }
 .tag-retirement { background: rgba(139,92,246,0.12); color: var(--accent2); }
+.tag-business { background: rgba(236,72,153,0.12); color: #ec4899; }
+.tag-real-estate { background: rgba(14,165,233,0.12); color: #0ea5e9; }
+.tag-insurance { background: rgba(20,184,166,0.12); color: #14b8a6; }
+.tag-crypto { background: rgba(249,115,22,0.12); color: #f97316; }
+.tag-personal { background: rgba(168,85,247,0.12); color: #a855f7; }
 
 /* Per-category icon tint */
 [data-cat="investment"] .calc-icon { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2); color: var(--green); }
@@ -328,6 +333,16 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 [data-cat="tax"]:hover .calc-icon { background: rgba(245,158,11,0.18); border-color: rgba(245,158,11,0.35); box-shadow: 0 0 16px rgba(245,158,11,0.15); }
 [data-cat="savings"]:hover .calc-icon { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.4); box-shadow: 0 0 16px rgba(99,102,241,0.2); }
 [data-cat="retirement"]:hover .calc-icon { background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.4); box-shadow: 0 0 16px rgba(139,92,246,0.2); }
+[data-cat="business"] .calc-icon { background: rgba(236,72,153,0.1); border-color: rgba(236,72,153,0.2); color: #ec4899; }
+[data-cat="real-estate"] .calc-icon { background: rgba(14,165,233,0.1); border-color: rgba(14,165,233,0.2); color: #0ea5e9; }
+[data-cat="insurance"] .calc-icon { background: rgba(20,184,166,0.1); border-color: rgba(20,184,166,0.2); color: #14b8a6; }
+[data-cat="crypto"] .calc-icon { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); color: #f97316; }
+[data-cat="personal"] .calc-icon { background: rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.2); color: #a855f7; }
+[data-cat="business"]:hover .calc-icon { background: rgba(236,72,153,0.18); border-color: rgba(236,72,153,0.35); box-shadow: 0 0 16px rgba(236,72,153,0.15); }
+[data-cat="real-estate"]:hover .calc-icon { background: rgba(14,165,233,0.18); border-color: rgba(14,165,233,0.35); box-shadow: 0 0 16px rgba(14,165,233,0.15); }
+[data-cat="insurance"]:hover .calc-icon { background: rgba(20,184,166,0.18); border-color: rgba(20,184,166,0.35); box-shadow: 0 0 16px rgba(20,184,166,0.15); }
+[data-cat="crypto"]:hover .calc-icon { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.35); box-shadow: 0 0 16px rgba(249,115,22,0.15); }
+[data-cat="personal"]:hover .calc-icon { background: rgba(168,85,247,0.18); border-color: rgba(168,85,247,0.35); box-shadow: 0 0 16px rgba(168,85,247,0.15); }
 
 /* ---- Tab group ---- */
 .tab-group { display: flex; gap: 0.25rem; background: var(--surface); border-radius: 10px; padding: 0.25rem; width: fit-content; max-width: 100%; overflow-x: auto; }
