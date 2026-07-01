@@ -1,7 +1,7 @@
 {
   "name": "FinCalc Pro — Indian Financial Tools",
   "short_name": "FinCalc Pro",
-  "description": "20+ financial calculators, live Nifty/Gold prices, mutual funds and ITR guide.",
+  "description": "130+ Indian financial calculators — SIP, EMI, FD, income tax and more. No ads, no sign-up.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -71,14 +71,14 @@
       "name": "Tax Regime",
       "short_name": "Tax",
       "description": "Old vs New Tax Regime Comparison",
-      "url": "/?calc=tax",
+      "url": "/?calc=tax-regime-comparison",
       "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Live Markets",
-      "short_name": "Markets",
-      "description": "Live Nifty, Sensex, Gold prices",
-      "url": "/#markets",
+      "name": "FD Calculator",
+      "short_name": "FD",
+      "description": "Fixed Deposit maturity calculator",
+      "url": "/?calc=fd",
       "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
     }
   ],

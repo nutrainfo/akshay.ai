@@ -1,14 +1,11 @@
 /* ============================================================
    FinCalc Pro — app.js
-   Main application: calculators, markets, compare
+   Main application: calculators, compare
    ============================================================ */
 
 /* ---- Global State ---- */
 const App = {
   currentCalc: null,
-  marketData: {},
-  marketHistory: { NIFTY50: [], SENSEX: [], GOLD: [], SILVER: [] },
-  marketInterval: null,
   analyticsConsent: false,
   reducedMotion: false,
 };
@@ -81,12 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeader();
   renderCalcGrid();
   initCalcFilters();
-  initMarkets();
   initCompare();
   initContactForm();
   initRevealAnimations();
   initHeroCanvas();
-  duplicateTicker();
 });
 
 /* ---- Settings ---- */
@@ -935,35 +930,6 @@ function drawAmortChart(canvasId, schedule) {
   ctx.fillStyle = '#10b981'; ctx.fillText('Principal', 24, 26);
 }
 
-function drawSparkline(canvasId, data, color = '#6366f1') {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !data.length) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-  const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
-  const toX = (i) => (i / (data.length - 1)) * w;
-  const toY = (v) => h - ((v - min) / range) * h * 0.8 - h * 0.1;
-
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, color.replace(')', ',0.25)').replace('rgb','rgba'));
-  grad.addColorStop(1, 'transparent');
-
-  ctx.beginPath();
-  ctx.moveTo(toX(0), h);
-  data.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
-  ctx.lineTo(toX(data.length - 1), h);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  ctx.beginPath();
-  data.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
 /* ============================================================
    EXPORT / SHARE
    ============================================================ */
@@ -999,157 +965,6 @@ function shareCalc(calcId) {
   }
 }
 
-/* ============================================================
-   BANKS & RATES
-   ============================================================ */
-/* ============================================================
-   MARKETS — LIVE DATA (Fallback mock with realistic values)
-   ============================================================ */
-const MARKET_SEEDS = {
-  NIFTY50: { base: 26200, name: 'NIFTY 50', priceId: 'mc-nifty-price', chgId: 'mc-nifty-chg', tickerId: 't-nifty', tickerChgId: 't-nifty-chg', histId: 'NIFTY50' },
-  SENSEX:  { base: 86000, name: 'SENSEX', priceId: 'mc-sensex-price', chgId: 'mc-sensex-chg', tickerId: 't-sensex', tickerChgId: 't-sensex-chg', histId: 'SENSEX' },
-  GOLD:    { base: 145000, name: 'GOLD', priceId: 'mc-gold-price', chgId: 'mc-gold-chg', tickerId: 't-gold', tickerChgId: 't-gold-chg', histId: 'GOLD' },
-  SILVER:  { base: 115000, name: 'SILVER', priceId: 'mc-silver-price', chgId: 'mc-silver-chg', tickerId: 't-silver', tickerChgId: 't-silver-chg', histId: 'SILVER' },
-  USDINR:  { base: 86.2 },
-};
-
-function initMarkets() {
-  /* Seed with base values for instant display before API responds */
-  for (const [sym, cfg] of Object.entries(MARKET_SEEDS)) {
-    App.marketData[sym] = { price: cfg.base, change: 0, changePct: 0 };
-    for (let i = 0; i < 50; i++) {
-      App.marketHistory[sym]?.push(cfg.base * (1 + (Math.random() - 0.5) * 0.01));
-    }
-  }
-  updateMarketDisplay();
-
-  /* Fetch real data; refresh every 10 minutes */
-  fetchAndUpdateMarket();
-  App.marketInterval = setInterval(fetchAndUpdateMarket, 10 * 60 * 1000);
-
-  document.querySelectorAll('.range-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      updateSparklines();
-    });
-  });
-}
-
-const MARKET_CACHE_KEY = 'fincalc_market_v1';
-const MARKET_CACHE_TTL = 5 * 60 * 1000; /* 5 minutes */
-
-async function fetchAndUpdateMarket() {
-  /* Check sessionStorage cache first to avoid redundant API calls */
-  try {
-    const cached = sessionStorage.getItem(MARKET_CACHE_KEY);
-    if (cached) {
-      const { ts, data } = JSON.parse(cached);
-      if (Date.now() - ts < MARKET_CACHE_TTL) {
-        applyMarketData(data);
-        return;
-      }
-    }
-  } catch {}
-
-  try {
-    const res = await fetch('/api/market', { signal: AbortSignal.timeout(10000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    if (!json.ok || !json.data) throw new Error('Bad response');
-
-    /* Cache the successful response */
-    try { sessionStorage.setItem(MARKET_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: json.data })); } catch {}
-
-    applyMarketData(json.data);
-
-    /* Mark market section as confirmed live (subtitle already set to live text in HTML) */
-    if (!json._partial) {
-      const badge = document.querySelector('#markets .section-tag');
-      if (badge) badge.textContent = 'Live';
-    }
-  } catch (err) {
-    /* Silently keep seeded values on failure — no console spam in production */
-  }
-}
-
-function applyMarketData(data) {
-  for (const [sym, val] of Object.entries(data)) {
-    App.marketData[sym] = val;
-    /* Append current price to history for sparkline */
-    if (App.marketHistory[sym]) {
-      App.marketHistory[sym].push(val.price);
-      if (App.marketHistory[sym].length > 200) App.marketHistory[sym].shift();
-    }
-  }
-  updateMarketDisplay();
-}
-
-function updateMarketDisplay() {
-  const fmt = (v, decimals = 2) => v.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  const configs = [
-    ['NIFTY50', 'mc-nifty-price',  'mc-nifty-chg',  't-nifty',   't-nifty-chg',   'chart-nifty'],
-    ['SENSEX',  'mc-sensex-price', 'mc-sensex-chg', 't-sensex',  't-sensex-chg',  'chart-sensex'],
-    ['GOLD',    'mc-gold-price',   'mc-gold-chg',   't-gold',    't-gold-chg',    'chart-gold'],
-    ['SILVER',  'mc-silver-price', 'mc-silver-chg', 't-silver',  't-silver-chg',  'chart-silver'],
-    ['USDINR',  null,              null,             't-usdinr',  't-usdinr-chg',  null],
-  ];
-
-  for (const [sym, priceId, chgId, tickId, tickChgId, chartId] of configs) {
-    const entry = App.marketData[sym];
-    /* Support both old scalar format (seed) and new object format (API) */
-    const price      = typeof entry === 'object' ? entry.price      : entry;
-    const change     = typeof entry === 'object' ? entry.change     : 0;
-    const changePct  = typeof entry === 'object' ? entry.changePct  : 0;
-
-    const isUp    = change >= 0;
-    const absPct  = Math.abs(changePct).toFixed(2);
-    const absChg  = Math.abs(change).toFixed(sym === 'USDINR' ? 4 : 2);
-    const chgText = `${isUp ? '▲' : '▼'} ${absChg} (${absPct}%)`;
-    const cls     = isUp ? 'up' : 'down';
-
-    const hist = App.marketHistory[sym] || [];
-
-    if (priceId) {
-      const el = document.getElementById(priceId);
-      if (el) el.textContent = '₹' + fmt(price, sym === 'USDINR' ? 4 : 2);
-    }
-    if (chgId) {
-      const el = document.getElementById(chgId);
-      if (el) { el.textContent = chgText; el.className = 'mc-change ' + cls; }
-    }
-    if (tickId) {
-      const el = document.getElementById(tickId);
-      if (el) el.textContent = '₹' + fmt(price, sym === 'USDINR' ? 4 : 2);
-    }
-    if (tickChgId) {
-      const el = document.getElementById(tickChgId);
-      if (el) { el.textContent = chgText; el.className = 'ticker-chg ' + cls; }
-    }
-    if (chartId) drawSparkline(chartId, hist.slice(-50), isUp ? '#10b981' : '#ef4444');
-  }
-}
-
-function updateSparklines() {
-  const configs = [['NIFTY50','chart-nifty'],['SENSEX','chart-sensex'],['GOLD','chart-gold'],['SILVER','chart-silver']];
-  configs.forEach(([sym, id]) => {
-    const hist = App.marketHistory[sym] || [];
-    const isUp = hist[hist.length - 1] >= hist[0];
-    drawSparkline(id, hist, isUp ? '#10b981' : '#ef4444');
-  });
-}
-
-/* ---- Duplicate ticker items for seamless loop ---- */
-function duplicateTicker() {
-  const track = document.getElementById('ticker-track');
-  if (!track) return;
-  const clone = track.innerHTML;
-  track.innerHTML = clone + clone;
-}
-
-/* ============================================================
-   ITR TABS
-   ============================================================ */
 /* ============================================================
    COMPARE ENGINE
    ============================================================ */
