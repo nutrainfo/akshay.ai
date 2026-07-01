@@ -82,7 +82,64 @@ const FC = (() => {
     return Infinity;
   }
 
-  /* ---- Income Tax (FY 2026-27, Budget 2025 slabs continued) ---- */
+  /* ---- Income Tax (FY 2026-27, Income Tax Act 2025 slabs) ---- */
+
+  /* Surcharge slabs, sorted ascending by threshold */
+  const OLD_REGIME_SURCHARGE = [
+    { threshold: 5000000, rate: 0.10 },
+    { threshold: 10000000, rate: 0.15 },
+    { threshold: 20000000, rate: 0.25 },
+    { threshold: 50000000, rate: 0.37 },
+  ];
+  const NEW_REGIME_SURCHARGE = [
+    { threshold: 5000000, rate: 0.10 },
+    { threshold: 10000000, rate: 0.15 },
+    { threshold: 20000000, rate: 0.25 }, /* capped at 25% under new regime (no 37% slab) */
+  ];
+
+  /* Apply surcharge with marginal relief, then 4% Health & Education Cess.
+     Marginal relief ensures tax+surcharge on income just above a threshold
+     never exceeds tax+surcharge at the threshold plus the income excess. */
+  function applySurchargeAndCess(baseTaxFn, taxableIncome, surchargeSlabs) {
+    const baseTax = baseTaxFn(taxableIncome);
+    let rate = 0, prevRate = 0, thresholdHit = 0;
+    for (const s of surchargeSlabs) {
+      if (taxableIncome > s.threshold) { prevRate = rate; rate = s.rate; thresholdHit = s.threshold; }
+    }
+    let taxWithSurcharge = baseTax * (1 + rate);
+    if (rate > 0) {
+      const taxAtThreshold = baseTaxFn(thresholdHit) * (1 + prevRate);
+      const maxAllowed = taxAtThreshold + (taxableIncome - thresholdHit);
+      taxWithSurcharge = Math.min(taxWithSurcharge, maxAllowed);
+    }
+    const surcharge = taxWithSurcharge - baseTax;
+    const cess = taxWithSurcharge * 0.04;
+    return { baseTax, surcharge, cess, total: taxWithSurcharge + cess };
+  }
+
+  function oldRegimeSlabTax(taxableIncome) {
+    let tax = 0;
+    if (taxableIncome > 1000000) tax += (taxableIncome - 1000000) * 0.30;
+    if (taxableIncome > 500000) tax += (Math.min(taxableIncome, 1000000) - 500000) * 0.20;
+    if (taxableIncome > 250000) tax += (Math.min(taxableIncome, 500000) - 250000) * 0.05;
+    return tax;
+  }
+
+  function newRegimeSlabTax(taxableIncome) {
+    const slabs = [
+      [400000, 0], [800000, 0.05], [1200000, 0.10], [1600000, 0.15],
+      [2000000, 0.20], [2400000, 0.25], [Infinity, 0.30],
+    ];
+    let tax = 0, prev = 0;
+    for (const [limit, rate] of slabs) {
+      if (taxableIncome > prev) { tax += (Math.min(taxableIncome, limit) - prev) * rate; prev = limit; }
+    }
+    return tax;
+  }
+
+  /* Section 87A rebate (low-income) and surcharge (high-income) apply to
+     mutually exclusive income ranges, so each regime handles them as two
+     separate branches rather than one combined formula. */
   function taxOldRegime(income, deductions = {}) {
     const ch80c = Math.min(deductions.sec80c || 0, 150000);
     const ch80d = Math.min(deductions.sec80d || 0, 75000);
@@ -91,47 +148,33 @@ const FC = (() => {
     const stdDeduction = 50000;
     const taxableIncome = Math.max(0, income - stdDeduction - ch80c - ch80d - hra - lta);
 
-    let tax = 0;
-    if (taxableIncome > 1000000) tax += (taxableIncome - 1000000) * 0.30;
-    if (taxableIncome > 500000) tax += (Math.min(taxableIncome, 1000000) - 500000) * 0.20;
-    if (taxableIncome > 250000) tax += (Math.min(taxableIncome, 500000) - 250000) * 0.05;
+    if (taxableIncome <= 500000) {
+      const baseTax = oldRegimeSlabTax(taxableIncome);
+      const rebate87A = Math.min(baseTax, 12500);
+      const taxAfterRebate = Math.max(0, baseTax - rebate87A);
+      const cess = taxAfterRebate * 0.04;
+      return { taxableIncome, tax: taxAfterRebate + cess, surcharge: 0, cess, regime: 'old' };
+    }
 
-    const surcharge = taxableIncome > 5000000 ? tax * 0.10 : 0;
-    const cess = (tax + surcharge) * 0.04;
-    const totalTax = tax + surcharge + cess;
-
-    const rebate87A = taxableIncome <= 500000 ? Math.min(totalTax, 12500) : 0;
-    return { taxableIncome, tax: Math.max(0, totalTax - rebate87A), regime: 'old' };
+    const { surcharge, cess, total } = applySurchargeAndCess(oldRegimeSlabTax, taxableIncome, OLD_REGIME_SURCHARGE);
+    return { taxableIncome, tax: total, surcharge, cess, regime: 'old' };
   }
 
   function taxNewRegime(income) {
-    /* New regime slabs (FY 2026-27) */
     const stdDeduction = 75000;
     const taxableIncome = Math.max(0, income - stdDeduction);
 
-    let tax = 0;
-    const slabs = [
-      [400000, 0],
-      [800000, 0.05],
-      [1200000, 0.10],
-      [1600000, 0.15],
-      [2000000, 0.20],
-      [2400000, 0.25],
-      [Infinity, 0.30],
-    ];
-    let prev = 0;
-    for (const [limit, rate] of slabs) {
-      if (taxableIncome > prev) {
-        tax += (Math.min(taxableIncome, limit) - prev) * rate;
-        prev = limit;
-      }
+    /* Section 87A rebate: ₹60,000 for taxable income ≤ ₹12L → zero tax up to ₹12.75L gross */
+    if (taxableIncome <= 1200000) {
+      const baseTax = newRegimeSlabTax(taxableIncome);
+      const rebate87A = Math.min(baseTax, 60000);
+      const taxAfterRebate = Math.max(0, baseTax - rebate87A);
+      const cess = taxAfterRebate * 0.04;
+      return { taxableIncome, tax: taxAfterRebate + cess, surcharge: 0, cess, regime: 'new' };
     }
 
-    /* 87A rebate: ₹60,000 for taxable income ≤ ₹12L → zero tax up to ₹12.75L gross */
-    const rebate87A = taxableIncome <= 1200000 ? Math.min(tax, 60000) : 0;
-    const taxAfterRebate = Math.max(0, tax - rebate87A);
-    const cess = taxAfterRebate * 0.04;
-    return { taxableIncome, tax: taxAfterRebate + cess, regime: 'new' };
+    const { surcharge, cess, total } = applySurchargeAndCess(newRegimeSlabTax, taxableIncome, NEW_REGIME_SURCHARGE);
+    return { taxableIncome, tax: total, surcharge, cess, regime: 'new' };
   }
 
   /* ---- NPS ---- */

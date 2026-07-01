@@ -17,13 +17,16 @@ const TAX_CALC_DEFS = [
     mainLabel: 'Tax Payable',
     compute(v) {
       const res = FC.taxNewRegime(v.income);
+      const items = [
+        { label: 'Taxable Income', value: FC.formatINR(res.taxableIncome) },
+      ];
+      if (res.surcharge > 0) items.push({ label: 'Surcharge', value: FC.formatINR(res.surcharge) });
+      items.push({ label: 'Health & Education Cess (4%)', value: FC.formatINR(res.cess) });
+      items.push({ label: 'Take-home (Annual)', value: FC.formatINR(v.income - res.tax) });
       return {
         main: FC.formatINR(res.tax),
-        items: [
-          { label: 'Taxable Income', value: FC.formatINR(res.taxableIncome) },
-          { label: 'Take-home (Annual)', value: FC.formatINR(v.income - res.tax) },
-        ],
-        explain: `Under the Income Tax Act, 2025 new regime slabs (0% to ₹4L, rising to 30% above ₹24L, with a ₹60,000 rebate up to ₹12L taxable income), tax on ${FC.formatINR(v.income)} gross income is ${FC.formatINR(res.tax)}.`,
+        items,
+        explain: `Under the Income Tax Act, 2025 new regime slabs (0% to ₹4L, rising to 30% above ₹24L, with a ₹60,000 rebate up to ₹12L taxable income), tax on ${FC.formatINR(v.income)} gross income is ${FC.formatINR(res.tax)}${res.surcharge > 0 ? ` — including ${FC.formatINR(res.surcharge)} surcharge` : ''} and ${FC.formatINR(res.cess)} in 4% Health & Education Cess.`,
       };
     },
   },
@@ -39,13 +42,16 @@ const TAX_CALC_DEFS = [
     mainLabel: 'Tax Payable',
     compute(v) {
       const res = FC.taxOldRegime(v.income, { sec80c: v.c80c, sec80d: v.c80d, hra: v.hra });
+      const items = [
+        { label: 'Taxable Income', value: FC.formatINR(res.taxableIncome) },
+      ];
+      if (res.surcharge > 0) items.push({ label: 'Surcharge', value: FC.formatINR(res.surcharge) });
+      items.push({ label: 'Health & Education Cess (4%)', value: FC.formatINR(res.cess) });
+      items.push({ label: 'Take-home (Annual)', value: FC.formatINR(v.income - res.tax) });
       return {
         main: FC.formatINR(res.tax),
-        items: [
-          { label: 'Taxable Income', value: FC.formatINR(res.taxableIncome) },
-          { label: 'Take-home (Annual)', value: FC.formatINR(v.income - res.tax) },
-        ],
-        explain: `After the ₹50,000 standard deduction and eligible 80C/80D/HRA deductions, taxable income is ${FC.formatINR(res.taxableIncome)}, with tax payable of ${FC.formatINR(res.tax)} under the old regime.`,
+        items,
+        explain: `After the ₹50,000 standard deduction and eligible 80C/80D/HRA deductions, taxable income is ${FC.formatINR(res.taxableIncome)}, with tax payable of ${FC.formatINR(res.tax)}${res.surcharge > 0 ? ` (including ${FC.formatINR(res.surcharge)} surcharge` : ' (including'} and ${FC.formatINR(res.cess)} in 4% Health & Education Cess) under the old regime.`,
       };
     },
   },
@@ -67,11 +73,11 @@ const TAX_CALC_DEFS = [
       return {
         main: better,
         items: [
-          { label: 'Old Regime Tax', value: FC.formatINR(oldRes.tax) },
-          { label: 'New Regime Tax', value: FC.formatINR(newRes.tax) },
+          { label: 'Old Regime Tax (incl. cess/surcharge)', value: FC.formatINR(oldRes.tax) },
+          { label: 'New Regime Tax (incl. cess/surcharge)', value: FC.formatINR(newRes.tax) },
           { label: 'You Save', value: FC.formatINR(savings) },
         ],
-        explain: `Old Regime Tax: ${FC.formatINR(oldRes.tax)}. New Regime Tax (IT Act 2025): ${FC.formatINR(newRes.tax)}. ${better} saves you ${FC.formatINR(savings)}.`,
+        explain: `Old Regime Tax: ${FC.formatINR(oldRes.tax)} (cess ${FC.formatINR(oldRes.cess)}${oldRes.surcharge > 0 ? `, surcharge ${FC.formatINR(oldRes.surcharge)}` : ''}). New Regime Tax (IT Act 2025): ${FC.formatINR(newRes.tax)} (cess ${FC.formatINR(newRes.cess)}${newRes.surcharge > 0 ? `, surcharge ${FC.formatINR(newRes.surcharge)}` : ''}). ${better} saves you ${FC.formatINR(savings)}.`,
       };
     },
   },
@@ -92,10 +98,11 @@ const TAX_CALC_DEFS = [
         main: FC.formatINR(res.tax),
         items: [
           { label: 'Taxable Income', value: FC.formatINR(res.taxableIncome) },
+          { label: 'Cess + Surcharge', value: FC.formatINR(res.cess + res.surcharge) },
           { label: 'Effective Tax Rate', value: effectiveRate + '%' },
           { label: 'Monthly Take-home', value: FC.formatINR((v.salary - res.tax) / 12) },
         ],
-        explain: `On a gross salary of ${FC.formatINR(v.salary)} under the ${isNew ? 'new' : 'old'} regime, tax payable is ${FC.formatINR(res.tax)} (${effectiveRate}% effective rate).`,
+        explain: `On a gross salary of ${FC.formatINR(v.salary)} under the ${isNew ? 'new' : 'old'} regime, tax payable is ${FC.formatINR(res.tax)} (${effectiveRate}% effective rate), including ${FC.formatINR(res.cess)} cess${res.surcharge > 0 ? ` and ${FC.formatINR(res.surcharge)} surcharge` : ''}.`,
       };
     },
   },
