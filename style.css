@@ -639,6 +639,10 @@ select.input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://ww
 /* ---- Range slider labels ---- */
 .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .slider-val { font-weight: 700; font-size: 0.95rem; color: var(--accent); min-width: 60px; text-align: right; }
+.input-num {
+  width: 140px; min-width: 140px; flex-shrink: 0;
+  padding: 0.625rem 0.5rem; font-size: 0.85rem; text-align: right;
+}
 
 /* ============================================================
    PWA — Install button, Toast, Success, Update banner

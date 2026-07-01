@@ -699,8 +699,8 @@ function sliderField(id, label, min, max, step, defaultVal) {
     <div class="slider-row">
       <input type="range" class="range-input" id="${id}-slider" min="${min}" max="${max}" step="${step}" value="${defaultVal}"
         oninput="document.getElementById('${id}').value=this.value;calcLive(App.currentCalc)" aria-label="${label} slider" />
-      <input type="number" class="input" id="${id}" value="${defaultVal}" min="${min}" max="${max}" step="${step}"
-        oninput="document.getElementById('${id}-slider').value=this.value;calcLive(App.currentCalc)" aria-label="${label}" style="width:100px;flex-shrink:0" />
+      <input type="number" class="input input-num" id="${id}" value="${defaultVal}" min="${min}" max="${max}" step="${step}"
+        oninput="document.getElementById('${id}-slider').value=this.value;calcLive(App.currentCalc)" aria-label="${label}" />
     </div>
   </div>`;
 }
