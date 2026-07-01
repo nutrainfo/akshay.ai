@@ -26,7 +26,7 @@ const TAX_CALC_DEFS = [
       return {
         main: FC.formatINR(res.tax),
         items,
-        explain: `Under the Income Tax Act, 2025 new regime slabs (0% to ₹4L, rising to 30% above ₹24L, with a ₹60,000 rebate up to ₹12L taxable income), tax on ${FC.formatINR(v.income)} gross income is ${FC.formatINR(res.tax)}${res.surcharge > 0 ? ` — including ${FC.formatINR(res.surcharge)} surcharge` : ''} and ${FC.formatINR(res.cess)} in 4% Health & Education Cess.`,
+        explain: `Under the Income Tax Act, 2025 new regime slabs (0% to ₹4L, rising to 30% above ₹24L), tax on ${FC.formatINR(v.income)} gross income (₹${(res.taxableIncome/100000).toFixed(2)}L taxable) is ${FC.formatINR(res.tax)}${res.surcharge > 0 ? ` — including ${FC.formatINR(res.surcharge)} surcharge` : ''} and ${FC.formatINR(res.cess)} in 4% Health & Education Cess.${res.taxableIncome <= 1200000 ? ` A Section 87A rebate of up to ₹60,000 applies since taxable income is within ₹12L.` : ''}`,
       };
     },
   },
