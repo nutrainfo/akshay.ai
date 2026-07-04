@@ -72,15 +72,47 @@ const CALCULATORS = [
    INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   initSettings();
   initCookieBanner();
   initHeader();
+  initScrollProgress();
+  initCommandPalette();
+  initHeroSearch();
+  initHeroStats();
+  initQuickWidgets();
+  initBentoWidgets();
   renderCalcGrid();
   initCalcFilters();
   initCompare();
   initRevealAnimations();
   initHeroCanvas();
+  initMagneticButtons();
 });
+
+/* ---- Theme ---- */
+function initTheme() {
+  const saved = localStorage.getItem('fincalc-theme');
+  if (saved === 'light') applyTheme('light', false);
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    applyTheme(next, true);
+  });
+}
+
+function applyTheme(theme, persist) {
+  document.documentElement.dataset.theme = theme === 'light' ? 'light' : '';
+  if (theme !== 'light') delete document.documentElement.dataset.theme;
+  document.getElementById('theme-icon-moon')?.classList.toggle('hidden', theme === 'light');
+  document.getElementById('theme-icon-sun')?.classList.toggle('hidden', theme !== 'light');
+  const dmToggle = document.getElementById('dark-mode-toggle');
+  if (dmToggle) dmToggle.checked = theme !== 'light';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#F5F6F9' : '#050505');
+  if (persist) localStorage.setItem('fincalc-theme', theme);
+  /* re-render canvases that bake in theme colors */
+  refreshBentoSparks?.();
+  if (App.currentCalc) calcLive(App.currentCalc);
+}
 
 /* ---- Settings ---- */
 function initSettings() {
@@ -95,7 +127,8 @@ function initSettings() {
     });
   }
   if (dmToggle) {
-    dmToggle.checked = true;
+    dmToggle.checked = document.documentElement.dataset.theme !== 'light';
+    dmToggle.addEventListener('change', () => applyTheme(dmToggle.checked ? 'dark' : 'light', true));
   }
 }
 
@@ -119,14 +152,31 @@ function initCookieBanner() {
   });
 }
 
-/* ---- Header: sticky compact + mobile menu ---- */
+/* ---- Category metadata (labels + icons for menus/cards) ---- */
+const CATEGORY_META = {
+  investment:   { label: 'Investment',       icon: 'sip' },
+  loan:         { label: 'Loans',            icon: 'home-loan' },
+  tax:          { label: 'Tax',              icon: 'income-tax' },
+  savings:      { label: 'Savings',          icon: 'rd' },
+  retirement:   { label: 'Retirement',       icon: 'nps' },
+  business:     { label: 'Business',         icon: 'tax' },
+  'real-estate':{ label: 'Real Estate',      icon: 'home-loan' },
+  insurance:    { label: 'Insurance',        icon: 'ppf' },
+  crypto:       { label: 'Crypto',           icon: 'lumpsum' },
+  personal:     { label: 'Personal Finance', icon: 'retirement' },
+  stocks:       { label: 'Stocks & Forex',   icon: 'capital-gains' },
+  startup:      { label: 'Startup',          icon: 'lumpsum' },
+  education:    { label: 'Education',        icon: 'child-edu' },
+};
+
+/* ---- Header: floating nav, mega menu, mobile menu ---- */
 function initHeader() {
   const header = document.getElementById('header');
   const toggle = document.getElementById('menu-toggle');
   const nav = document.getElementById('main-nav');
 
   window.addEventListener('scroll', () => {
-    header.style.borderBottomColor = window.scrollY > 40 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)';
+    header.classList.toggle('scrolled', window.scrollY > 30);
   }, { passive: true });
 
   toggle?.addEventListener('click', () => {
@@ -135,27 +185,402 @@ function initHeader() {
   });
 
   document.addEventListener('click', (e) => {
-    if (!header.contains(e.target)) nav.classList.remove('open');
+    if (!header.contains(e.target)) {
+      nav.classList.remove('open');
+      toggle?.setAttribute('aria-expanded', 'false');
+    }
   });
 
-  /* highlight active nav on scroll */
+  /* mega menu — built from registered categories */
+  buildMegaMenu();
+  const megaWrap = document.getElementById('nav-mega');
+  const megaToggle = document.getElementById('mega-toggle');
+  megaToggle?.addEventListener('click', () => {
+    const open = megaWrap.classList.toggle('open');
+    megaToggle.setAttribute('aria-expanded', String(open));
+  });
+
+  /* highlight active nav + bottom-nav on scroll */
   const sections = document.querySelectorAll('section[id]');
-  const navLinks = document.querySelectorAll('.nav-link');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
-        navLinks.forEach(l => l.classList.remove('active'));
-        const link = document.querySelector(`.nav-link[href="#${e.target.id}"]`);
-        link?.classList.add('active');
+        document.querySelectorAll('a.nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelector(`a.nav-link[href="#${e.target.id}"]`)?.classList.add('active');
+        document.querySelectorAll('.bottom-nav [data-bn]').forEach(l => l.classList.remove('bn-active'));
+        document.querySelector(`.bottom-nav [data-bn="${e.target.id}"]`)?.classList.add('bn-active');
       }
     });
-  }, { threshold: 0.4 });
+  }, { threshold: 0.35 });
   sections.forEach(s => observer.observe(s));
+
+  document.getElementById('bn-search')?.addEventListener('click', () => openPalette());
+}
+
+function buildMegaMenu() {
+  const menu = document.getElementById('mega-menu');
+  if (!menu) return;
+  const counts = {};
+  CALCULATORS.forEach(c => { counts[c.cat] = (counts[c.cat] || 0) + 1; });
+  menu.innerHTML = Object.entries(CATEGORY_META)
+    .filter(([cat]) => counts[cat])
+    .map(([cat, meta]) => `
+      <a class="mega-item" role="menuitem" href="#calculators" onclick="filterCategory('${cat}')">
+        <span class="mega-item-icon">${getIcon(meta.icon, 17)}</span>
+        <span>
+          <span class="mega-item-name">${meta.label}</span>
+          <span class="mega-item-count">${counts[cat]} tool${counts[cat] > 1 ? 's' : ''}</span>
+        </span>
+      </a>`).join('');
+}
+
+function filterCategory(cat) {
+  const btn = document.querySelector(`.filter-btn[data-filter="${cat}"]`);
+  if (btn) btn.click();
+  document.getElementById('main-nav')?.classList.remove('open');
+}
+
+/* ---- Scroll progress hairline ---- */
+function initScrollProgress() {
+  const bar = document.getElementById('scroll-progress');
+  if (!bar) return;
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + '%';
+      ticking = false;
+    });
+  }, { passive: true });
+}
+
+/* ---- Magnetic buttons (desktop, subtle) ---- */
+function initMagneticButtons() {
+  if (App.reducedMotion || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  document.addEventListener('mousemove', (e) => {
+    const btn = e.target.closest?.('.btn-primary, .btn-lg');
+    document.querySelectorAll('.btn-magnetized').forEach(b => {
+      if (b !== btn) { b.style.translate = ''; b.classList.remove('btn-magnetized'); }
+    });
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
+    const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+    btn.style.translate = `${dx * 6}px ${dy * 5}px`;
+    btn.classList.add('btn-magnetized');
+  }, { passive: true });
+}
+
+/* ---- Slider progress fill (webkit tracks have no native fill) ---- */
+function paintSlider(el) {
+  const min = parseFloat(el.min) || 0, max = parseFloat(el.max) || 100;
+  const v = parseFloat(el.value);
+  const pct = max > min ? Math.min(100, Math.max(0, ((v - min) / (max - min)) * 100)) : 0;
+  el.style.setProperty('--fill', pct + '%');
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target.classList?.contains('range-input')) paintSlider(e.target);
+});
+
+function paintAllSliders(root = document) {
+  root.querySelectorAll('.range-input').forEach(paintSlider);
+}
+
+/* ---- Toast ---- */
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  const msgEl = document.getElementById('toast-msg');
+  if (!toast || !msgEl) return;
+  msgEl.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   COMMAND PALETTE + SEARCH
+   ============================================================ */
+function searchCalculators(query, limit = 8) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const scored = CALCULATORS.map(c => {
+    const name = c.name.toLowerCase(), desc = c.desc.toLowerCase(), cat = c.cat.toLowerCase();
+    let score = -1;
+    if (name.startsWith(q)) score = 100;
+    else if (name.includes(q)) score = 60;
+    else if (cat.includes(q)) score = 30;
+    else if (desc.includes(q)) score = 20;
+    return { c, score };
+  }).filter(x => x.score >= 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map(x => x.c);
+}
+
+function searchResultHTML(c, extraClass = '') {
+  const meta = CATEGORY_META[c.cat];
+  return `
+    <button class="palette-item ${extraClass}" data-calc="${c.id}" role="option">
+      <span class="palette-item-icon">${getIcon(c.id, 17)}</span>
+      <span class="palette-item-body">
+        <span class="palette-item-name">${c.name}</span>
+        <span class="palette-item-desc">${c.desc}</span>
+      </span>
+      <span class="palette-item-cat calc-tag tag-${c.cat}">${meta ? meta.label : c.cat}</span>
+    </button>`;
+}
+
+function initCommandPalette() {
+  const overlay = document.getElementById('palette-overlay');
+  const input = document.getElementById('palette-input');
+  const results = document.getElementById('palette-results');
+  if (!overlay || !input || !results) return;
+  let selected = 0;
+
+  const render = () => {
+    const list = input.value.trim() ? searchCalculators(input.value, 10) : CALCULATORS.slice(0, 8);
+    if (!list.length) {
+      results.innerHTML = '<div class="palette-empty">No calculators found. Try “SIP”, “EMI” or “tax”.</div>';
+      return;
+    }
+    selected = Math.min(selected, list.length - 1);
+    results.innerHTML = list.map((c, i) => searchResultHTML(c, i === selected ? 'selected' : '')).join('');
+    results.querySelectorAll('.palette-item').forEach(item => {
+      item.addEventListener('click', () => { closePalette(); openCalc(item.dataset.calc); });
+    });
+  };
+
+  input.addEventListener('input', () => { selected = 0; render(); });
+  input.addEventListener('keydown', (e) => {
+    const items = results.querySelectorAll('.palette-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, items.length - 1); render(); results.querySelector('.selected')?.scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); render(); results.querySelector('.selected')?.scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'Enter') { e.preventDefault(); items[selected]?.click(); }
+  });
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closePalette(); });
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); overlay.classList.contains('hidden') ? openPalette() : closePalette(); }
+    else if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closePalette();
+  });
+  document.getElementById('nav-search')?.addEventListener('click', () => openPalette());
+
+  window._renderPalette = render;
+}
+
+function openPalette() {
+  const overlay = document.getElementById('palette-overlay');
+  const input = document.getElementById('palette-input');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+  input.value = '';
+  window._renderPalette?.();
+  input.focus();
+}
+
+function closePalette() {
+  document.getElementById('palette-overlay')?.classList.add('hidden');
+}
+
+/* ---- Hero search (inline suggestions) ---- */
+function initHeroSearch() {
+  const input = document.getElementById('hero-search-input');
+  const dropdown = document.getElementById('hero-search-results');
+  if (!input || !dropdown) return;
+
+  const render = () => {
+    const list = searchCalculators(input.value, 6);
+    if (!input.value.trim() || !list.length) {
+      dropdown.classList.add('hidden');
+      dropdown.innerHTML = '';
+      return;
+    }
+    dropdown.innerHTML = list.map(c => searchResultHTML(c)).join('');
+    dropdown.classList.remove('hidden');
+    dropdown.querySelectorAll('.palette-item').forEach(item => {
+      item.addEventListener('click', () => { dropdown.classList.add('hidden'); input.value = ''; openCalc(item.dataset.calc); });
+    });
+  };
+
+  input.addEventListener('input', render);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') dropdown.querySelector('.palette-item')?.click();
+    if (e.key === 'Escape') dropdown.classList.add('hidden');
+  });
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('hero-search')?.contains(e.target)) dropdown.classList.add('hidden');
+  });
+}
+
+/* ============================================================
+   HERO STATS (count-up) + LIVE WIDGETS
+   ============================================================ */
+function initHeroStats() {
+  const els = document.querySelectorAll('.stat-val[data-count]');
+  if (!els.length) return;
+  const animate = (el) => {
+    const target = parseFloat(el.dataset.count) || 0;
+    const suffix = el.dataset.suffix || '';
+    if (App.reducedMotion || target === 0) { el.textContent = target + suffix; return; }
+    const dur = 1400, t0 = performance.now();
+    const tick = (t) => {
+      const p = Math.min((t - t0) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { animate(e.target); io.unobserve(e.target); } });
+  }, { threshold: 0.5 });
+  els.forEach(el => io.observe(el));
+}
+
+function initQuickWidgets() {
+  const fmt = FC.formatINR;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('ql-sip', fmt(FC.sipFV(5000, 0.12, 15)));
+  set('ql-emi', fmt(FC.emi(3000000, 0.085, 240)) + '/mo');
+  set('ql-fd', fmt(FC.fdFV(100000, 0.07, 5, 4, 0).grossFV));
+  set('ql-nps', fmt(FC.npsFV(5000, 0, 0.10, 25, 0.30).corpus));
+}
+
+/* ---- Bento dashboard widgets ---- */
+function initBentoWidgets() {
+  if (!document.getElementById('bento-grid')) return;
+  const fmt = FC.formatINR;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  /* Investment overview: SIP 10k/mo @12% for 20y */
+  const sipFV = FC.sipFV(10000, 0.12, 20);
+  set('bw-sip-value', fmt(sipFV));
+  set('bw-sip-invested', fmt(10000 * 12 * 20));
+
+  /* EMI snapshot: 50L @8.5% 20y */
+  const emi = FC.emi(5000000, 0.085, 240);
+  const totalPay = emi * 240;
+  set('bw-emi-value', fmt(emi) + '/mo');
+  set('bw-emi-interest', fmt(totalPay - 5000000));
+  drawMeter('bw-emi-meter', [
+    { frac: 5000000 / totalPay, color: cssVar('--ch-1') },
+    { frac: (totalPay - 5000000) / totalPay, color: cssVar('--ch-3') },
+  ]);
+
+  /* Retirement: 30y old, retire 60, 50k/mo expense */
+  const ret = FC.retirementCorpus(30, 60, 50000, 0.06, 0.07);
+  set('bw-ret-value', fmt(ret.corpus));
+
+  /* Inflation: purchasing power of 1L in 10y at 6% */
+  set('bw-inf-value', fmt(100000 / Math.pow(1.06, 10)));
+
+  /* Tax estimator: ₹15L income, New Regime FY 2026-27 slabs (incl. 4% cess) */
+  const taxable = 1500000 - 75000; /* standard deduction */
+  const tax = newRegimeTaxEstimate(taxable);
+  set('bw-tax-value', fmt(tax));
+  set('bw-tax-rate', ((tax / 1500000) * 100).toFixed(1) + '%');
+  drawMeter('bw-tax-meter', [
+    { frac: (1500000 - tax) / 1500000, color: cssVar('--ch-2') },
+    { frac: tax / 1500000, color: cssVar('--ch-3') },
+  ]);
+
+  /* Step-up SIP vs flat */
+  const ssip = FC.stepUpSIP(5000, 0.12, 20, 10);
+  set('bw-ssip-value', fmt(ssip));
+  set('bw-ssip-flat', fmt(FC.sipFV(5000, 0.12, 20)));
+
+  refreshBentoSparks();
+}
+
+/* simplified New Regime slab math for the dashboard teaser widget */
+function newRegimeTaxEstimate(taxable) {
+  const slabs = [[400000, 0], [400000, 0.05], [400000, 0.10], [400000, 0.15], [400000, 0.20], [400000, 0.25], [Infinity, 0.30]];
+  let remaining = taxable, tax = 0;
+  for (const [width, rate] of slabs) {
+    if (remaining <= 0) break;
+    const inSlab = Math.min(remaining, width);
+    tax += inSlab * rate;
+    remaining -= inSlab;
+  }
+  return tax * 1.04; /* + 4% cess */
+}
+
+function refreshBentoSparks() {
+  drawSparkline('bw-sip-spark', [
+    { fn: (yr) => FC.sipFV(10000, 0.12, yr), color: cssVar('--ch-1'), fill: true },
+    { fn: (yr) => 10000 * 12 * yr, color: cssVar('--ch-muted'), dash: [4, 4] },
+  ], 20);
+  drawSparkline('bw-ssip-spark', [
+    { fn: (yr) => FC.stepUpSIP(5000, 0.12, yr, 10), color: cssVar('--ch-2'), fill: true },
+    { fn: (yr) => FC.sipFV(5000, 0.12, yr), color: cssVar('--ch-muted'), dash: [4, 4] },
+  ], 20);
+}
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#3B82F6';
+}
+
+function drawMeter(id, parts) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = parts.map(p => `<i style="width:${(p.frac * 100).toFixed(1)}%;background:${p.color}"></i>`).join('');
+}
+
+function drawSparkline(canvasId, series, years) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth || 300, h = canvas.offsetHeight || 56;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const all = series.flatMap(s => Array.from({ length: years + 1 }, (_, yr) => s.fn(yr)));
+  const maxVal = Math.max(...all) || 1;
+  const toX = (yr) => (yr / years) * (w - 4) + 2;
+  const toY = (v) => h - 3 - (v / maxVal) * (h - 8);
+
+  series.forEach(s => {
+    const pts = Array.from({ length: years + 1 }, (_, yr) => ({ x: toX(yr), y: toY(s.fn(yr)) }));
+    if (s.fill) {
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, s.color + '3D');
+      grad.addColorStop(1, s.color + '00');
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, h - 2);
+      pts.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(pts[pts.length - 1].x, h - 2);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+    ctx.beginPath();
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    if (s.dash) ctx.setLineDash(s.dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
 }
 
 /* ============================================================
    CALCULATOR GRID
    ============================================================ */
+function calcTimeEstimate(id) {
+  /* rough completion time from input count (extra calcs expose their defs) */
+  let inputs = 3;
+  if (typeof EXTRA_CALC_DEFS !== 'undefined') {
+    const def = EXTRA_CALC_DEFS.find(d => d.id === id);
+    if (def) inputs = def.inputs.length;
+  }
+  return `~${Math.max(15, Math.min(60, inputs * 10))}s`;
+}
+
 function renderCalcGrid(filter = 'all', search = '') {
   const grid = document.getElementById('calc-grid');
   if (!grid) return;
@@ -163,14 +588,35 @@ function renderCalcGrid(filter = 'all', search = '') {
     (filter === 'all' || c.cat === filter) &&
     (c.name.toLowerCase().includes(search) || c.desc.toLowerCase().includes(search))
   );
+
+  const countEl = document.getElementById('calc-count');
+  if (countEl) {
+    const catLabel = filter === 'all' ? 'across all categories' : `in ${CATEGORY_META[filter]?.label || filter}`;
+    countEl.textContent = `${filtered.length} calculator${filtered.length === 1 ? '' : 's'} ${catLabel}`;
+  }
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="calc-empty">No calculators match “${search}”. Try a different term or category.</div>`;
+    return;
+  }
+
   grid.innerHTML = filtered.map(c => `
     <div class="calc-card reveal" role="listitem" tabindex="0" data-cat="${c.cat}"
          onclick="openCalc('${c.id}')" onkeydown="if(event.key==='Enter')openCalc('${c.id}')"
          aria-label="${c.name}">
-      <div class="calc-icon">${getIcon(c.id)}</div>
-      <span class="calc-tag tag-${c.cat}">${c.cat}</span>
+      <div class="calc-card-top">
+        <div class="calc-icon">${getIcon(c.id, 22)}</div>
+        <span class="calc-tag tag-${c.cat}">${CATEGORY_META[c.cat]?.label || c.cat}</span>
+      </div>
       <h3>${c.name}</h3>
       <p>${c.desc}</p>
+      <div class="calc-card-meta">
+        <span class="calc-time">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${calcTimeEstimate(c.id)}
+        </span>
+        <span class="calc-go">Calculate <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </div>
     </div>
   `).join('');
   observeReveal();
@@ -206,13 +652,19 @@ function openCalc(id) {
   body.innerHTML = buildCalcUI(id);
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-open');
   const firstInput = body.querySelector('input, select');
   firstInput?.focus();
+  paintAllSliders(body);
   calcLive(id);
+  watchResultPulse(body);
 
   document.getElementById('modal-close').onclick = closeModal;
   document.getElementById('modal-export-csv').onclick = () => exportCSV(id);
   document.getElementById('modal-share').onclick = () => shareCalc(id);
+  document.getElementById('modal-copy').onclick = () => copyResult(id);
+  document.getElementById('modal-save').onclick = () => saveCalculation(id);
+  document.getElementById('modal-pdf').onclick = () => window.print();
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', modalEscHandler);
 }
@@ -221,7 +673,77 @@ function closeModal() {
   const modal = document.getElementById('calc-modal');
   modal.classList.add('hidden');
   document.body.style.overflow = '';
+  document.body.classList.remove('modal-open');
+  App.currentCalc = null;
+  resultPulseObserver?.disconnect();
   document.removeEventListener('keydown', modalEscHandler);
+}
+
+/* pulse the headline number whenever a live recalculation changes it */
+let resultPulseObserver;
+function watchResultPulse(body) {
+  resultPulseObserver?.disconnect();
+  resultPulseObserver = new MutationObserver((muts) => {
+    const seen = new Set();
+    muts.forEach(m => {
+      const main = (m.target.nodeType === 3 ? m.target.parentElement : m.target)?.closest?.('.result-main');
+      if (main && !seen.has(main)) {
+        seen.add(main);
+        main.classList.remove('pulse');
+        void main.offsetWidth; /* restart animation */
+        main.classList.add('pulse');
+      }
+    });
+  });
+  resultPulseObserver.observe(body, { subtree: true, childList: true, characterData: true });
+}
+
+/* ---- Copy / Save result ---- */
+function collectResultText(id) {
+  const calc = CALCULATORS.find(c => c.id === id);
+  const body = document.getElementById('modal-body');
+  if (!calc || !body) return null;
+  const lines = [`${calc.name} — FinCalc Pro`];
+  body.querySelectorAll('.result-card').forEach(card => {
+    const label = card.querySelector('.result-label')?.textContent.trim();
+    const main = card.querySelector('.result-main')?.textContent.trim();
+    if (label && main) lines.push(`${label}: ${main}`);
+    card.querySelectorAll('.result-item').forEach(item => {
+      const v = item.querySelector('.result-item-val')?.textContent.trim();
+      const l = item.querySelector('.result-item-label')?.textContent.trim();
+      if (v && l) lines.push(`${l}: ${v}`);
+    });
+  });
+  const explain = body.querySelector('.calc-explanation')?.textContent.trim();
+  if (explain) lines.push('', explain);
+  return lines.join('\n');
+}
+
+function copyResult(id) {
+  const text = collectResultText(id);
+  if (!text) return;
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('Result copied to clipboard'))
+    .catch(() => showToast('Could not copy — select the text manually'));
+}
+
+function saveCalculation(id) {
+  const calc = CALCULATORS.find(c => c.id === id);
+  const body = document.getElementById('modal-body');
+  if (!calc || !body) return;
+  const inputs = {};
+  body.querySelectorAll('input[id], select[id]').forEach(el => {
+    if (!el.id.endsWith('-slider')) inputs[el.id] = el.value;
+  });
+  const saved = JSON.parse(localStorage.getItem('fincalc-saved') || '[]');
+  saved.unshift({
+    id, name: calc.name,
+    result: body.querySelector('.result-main')?.textContent.trim() || '',
+    inputs,
+    at: new Date().toISOString(),
+  });
+  localStorage.setItem('fincalc-saved', JSON.stringify(saved.slice(0, 50)));
+  showToast('Calculation saved on this device');
 }
 
 function modalEscHandler(e) { if (e.key === 'Escape') closeModal(); }
@@ -610,7 +1132,7 @@ function sliderField(id, label, min, max, step, defaultVal) {
       <input type="range" class="range-input" id="${id}-slider" min="${min}" max="${max}" step="${step}" value="${defaultVal}"
         oninput="document.getElementById('${id}').value=this.value;calcLive(App.currentCalc)" aria-label="${label} slider" />
       <input type="number" class="input input-num" id="${id}" value="${defaultVal}" min="${min}" max="${max}" step="${step}"
-        oninput="document.getElementById('${id}-slider').value=this.value;calcLive(App.currentCalc)" aria-label="${label}" />
+        oninput="var s=document.getElementById('${id}-slider');s.value=this.value;paintSlider(s);calcLive(App.currentCalc)" aria-label="${label}" />
     </div>
   </div>`;
 }
@@ -822,24 +1344,35 @@ function calcLive(id) {
 /* ============================================================
    CHART DRAWING (Canvas, no external libs)
    ============================================================ */
+function chartCtx(canvas) {
+  /* retina-sharp canvas sized to its CSS box */
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth || 380, h = canvas.offsetHeight || 170;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+
+function chartTextColor() { return cssVar('--text2') || '#9BA3B5'; }
+
 function drawGrowthChart(canvasId, fvFn, years, invested, label) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.offsetWidth || 380, h = canvas.offsetHeight || 160;
-  canvas.width = w; canvas.height = h;
-  ctx.clearRect(0, 0, w, h);
+  const { ctx, w, h } = chartCtx(canvas);
+  const c1 = cssVar('--ch-1');
 
   const points = [];
   for (let yr = 0; yr <= years; yr++) { points.push({ yr, fv: fvFn(yr), inv: invested / years * yr }); }
   const maxVal = Math.max(...points.map(p => p.fv));
   const toX = (yr) => (yr / years) * (w - 40) + 20;
-  const toY = (val) => h - 20 - (val / maxVal) * (h - 30);
+  const toY = (val) => h - 20 - (val / maxVal) * (h - 34);
 
-  /* gradient area for fv */
+  /* gradient area under the growth line */
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, 'rgba(99,102,241,0.3)');
-  grad.addColorStop(1, 'rgba(99,102,241,0)');
+  grad.addColorStop(0, c1 + '42');
+  grad.addColorStop(1, c1 + '00');
   ctx.beginPath();
   ctx.moveTo(toX(0), h - 20);
   points.forEach(p => ctx.lineTo(toX(p.yr), toY(p.fv)));
@@ -848,60 +1381,63 @@ function drawGrowthChart(canvasId, fvFn, years, invested, label) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  /* fv line */
+  /* growth line */
   ctx.beginPath();
   points.forEach((p, i) => i === 0 ? ctx.moveTo(toX(p.yr), toY(p.fv)) : ctx.lineTo(toX(p.yr), toY(p.fv)));
-  ctx.strokeStyle = '#6366f1';
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = c1;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
   ctx.stroke();
 
-  /* invested line */
+  /* invested reference line */
   ctx.beginPath();
   points.forEach((p, i) => i === 0 ? ctx.moveTo(toX(p.yr), toY(p.inv)) : ctx.lineTo(toX(p.yr), toY(p.inv)));
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.strokeStyle = cssVar('--ch-muted');
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 4]);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  /* legend */
+  /* legend (text ink + colored swatch, never colored text) */
   ctx.font = '10px Inter, sans-serif';
-  ctx.fillStyle = '#6366f1';
-  ctx.fillText(label, 24, 16);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.fillText('Invested', 24, 30);
+  ctx.fillStyle = c1;
+  ctx.fillRect(22, 10, 8, 8);
+  ctx.fillStyle = chartTextColor();
+  ctx.fillText(label, 34, 18);
+  ctx.fillStyle = cssVar('--ch-muted');
+  ctx.fillRect(22, 24, 8, 8);
+  ctx.fillStyle = chartTextColor();
+  ctx.fillText('Invested', 34, 32);
 }
 
 function drawCompareChart(canvasId, fn1, fn2, years, label1, label2) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.offsetWidth || 380, h = 160;
-  canvas.width = w; canvas.height = h;
-  ctx.clearRect(0, 0, w, h);
+  const { ctx, w, h } = chartCtx(canvas);
 
   const pts1 = Array.from({length: years+1}, (_,i) => fn1(i));
   const pts2 = Array.from({length: years+1}, (_,i) => fn2(i));
   const maxVal = Math.max(...pts1, ...pts2);
   const toX = (yr) => (yr / years) * (w - 40) + 20;
-  const toY = (val) => h - 20 - (val / maxVal) * (h - 30);
+  const toY = (val) => h - 20 - (val / maxVal) * (h - 34);
 
-  [['#6366f1', pts1, label1], ['#10b981', pts2, label2]].forEach(([color, pts, lbl], li) => {
+  [[cssVar('--ch-1'), pts1, label1], [cssVar('--ch-2'), pts2, label2]].forEach(([color, pts, lbl], li) => {
     ctx.beginPath();
     pts.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.font = '10px Inter'; ctx.fillStyle = color;
-    ctx.fillText(lbl, 24, 16 + li * 14);
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.font = '10px Inter, sans-serif';
+    ctx.fillStyle = color;
+    ctx.fillRect(22, 10 + li * 14, 8, 8);
+    ctx.fillStyle = chartTextColor();
+    ctx.fillText(lbl, 34, 18 + li * 14);
   });
 }
 
 function drawAmortChart(canvasId, schedule) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.offsetWidth || 380, h = 160;
-  canvas.width = w; canvas.height = h;
-  ctx.clearRect(0, 0, w, h);
+  const { ctx, w, h } = chartCtx(canvas);
+  const cInterest = cssVar('--ch-3'), cPrincipal = cssVar('--ch-1');
 
   const step = Math.max(1, Math.floor(schedule.length / 30));
   const sampled = schedule.filter((_, i) => i % step === 0);
@@ -910,16 +1446,24 @@ function drawAmortChart(canvasId, schedule) {
 
   sampled.forEach((r, i) => {
     const x = 20 + i * barW;
-    const principalH = (r.principalPaid / maxEMI) * (h - 30);
-    const interestH = (r.interest / maxEMI) * (h - 30);
-    ctx.fillStyle = '#6366f1';
-    ctx.fillRect(x, h - 20 - principalH - interestH, barW - 2, interestH);
-    ctx.fillStyle = '#10b981';
-    ctx.fillRect(x, h - 20 - principalH, barW - 2, principalH);
+    const principalH = (r.principalPaid / maxEMI) * (h - 62);
+    const interestH = (r.interest / maxEMI) * (h - 62);
+    /* 2px surface gap between stacked segments */
+    ctx.fillStyle = cInterest;
+    ctx.fillRect(x, h - 20 - principalH - 2 - interestH, Math.max(barW - 2, 1), interestH);
+    ctx.fillStyle = cPrincipal;
+    ctx.fillRect(x, h - 20 - principalH, Math.max(barW - 2, 1), principalH);
   });
 
-  ctx.font = '9px Inter'; ctx.fillStyle = '#6366f1'; ctx.fillText('Interest', 24, 14);
-  ctx.fillStyle = '#10b981'; ctx.fillText('Principal', 24, 26);
+  ctx.font = '10px Inter, sans-serif';
+  ctx.fillStyle = cInterest;
+  ctx.fillRect(22, 10, 8, 8);
+  ctx.fillStyle = chartTextColor();
+  ctx.fillText('Interest', 34, 18);
+  ctx.fillStyle = cPrincipal;
+  ctx.fillRect(22, 24, 8, 8);
+  ctx.fillStyle = chartTextColor();
+  ctx.fillText('Principal', 34, 32);
 }
 
 /* ============================================================
@@ -927,7 +1471,7 @@ function drawAmortChart(canvasId, schedule) {
    ============================================================ */
 function exportCSV(calcId) {
   const data = getCalcExportData(calcId);
-  if (!data) { alert('No data to export for this calculator yet.'); return; }
+  if (!data) { showToast('No CSV data for this calculator'); return; }
   const csv = data.map(row => row.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -953,7 +1497,7 @@ function shareCalc(calcId) {
   if (navigator.share) {
     navigator.share({ title: 'FinCalc Pro', url }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
+    navigator.clipboard.writeText(url).then(() => showToast('Link copied to clipboard'));
   }
 }
 
@@ -1092,7 +1636,7 @@ function initHeroCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     /* grid lines */
-    ctx.strokeStyle = 'rgba(99,102,241,0.06)';
+    ctx.strokeStyle = 'rgba(59,130,246,0.05)';
     ctx.lineWidth = 1;
     for (let x = 0; x < canvas.width; x += 80) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
@@ -1110,7 +1654,7 @@ function initHeroCanvas() {
 
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(139,92,246,${p.alpha})`;
+      ctx.fillStyle = `rgba(34,211,238,${p.alpha * 0.8})`;
       ctx.fill();
 
       for (let j = i + 1; j < particles.length; j++) {
@@ -1119,7 +1663,7 @@ function initHeroCanvas() {
         if (dist < 120) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = `rgba(99,102,241,${0.08 * (1 - dist / 120)})`;
+          ctx.strokeStyle = `rgba(59,130,246,${0.09 * (1 - dist / 120)})`;
           ctx.lineWidth = 0.8;
           ctx.stroke();
         }
