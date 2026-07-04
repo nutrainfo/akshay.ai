@@ -88,7 +88,103 @@ document.addEventListener('DOMContentLoaded', () => {
   initRevealAnimations();
   initHeroCanvas();
   initMagneticButtons();
+  initCursorGlow();
 });
+
+/* ============================================================
+   CURSOR GLOW TRAIL
+   A luminous blue→cyan ribbon that follows the pointer (mouse)
+   or finger (touch), drawn on a background canvas. The render
+   loop only runs while the trail is alive, so it costs nothing
+   when idle. Disabled under reduced motion.
+   ============================================================ */
+function initCursorGlow() {
+  const canvas = document.getElementById('cursor-glow');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w, h;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth; h = window.innerHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize, { passive: true });
+
+  const LIFE = 620;       /* ms a point stays visible */
+  const MAX_POINTS = 48;
+  const trail = [];
+  let raf = null;
+
+  function addPoint(x, y) {
+    if (App.reducedMotion) return;
+    const last = trail[trail.length - 1];
+    if (last && Math.hypot(x - last.x, y - last.y) < 3) { last.t = performance.now(); return; }
+    trail.push({ x, y, t: performance.now() });
+    if (trail.length > MAX_POINTS) trail.shift();
+    if (!raf) raf = requestAnimationFrame(draw);
+  }
+
+  /* pointermove covers mouse and pen; touchmove covers finger drags */
+  window.addEventListener('pointermove', (e) => addPoint(e.clientX, e.clientY), { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (t) addPoint(t.clientX, t.clientY);
+  }, { passive: true });
+
+  function draw() {
+    raf = null;
+    const now = performance.now();
+    while (trail.length && now - trail[0].t > LIFE) trail.shift();
+    ctx.clearRect(0, 0, w, h);
+    if (trail.length > 1) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const n = trail.length;
+      for (let i = 1; i < n; i++) {
+        const p0 = trail[i - 1], p1 = trail[i];
+        const fade = Math.max(0, 1 - (now - p1.t) / LIFE);
+        if (fade <= 0) continue;
+        const prog = i / n; /* 0 = tail, 1 = head → blue → cyan */
+        const r = Math.round(59 + (34 - 59) * prog);
+        const g = Math.round(130 + (211 - 130) * prog);
+        const b = Math.round(246 + (238 - 246) * prog);
+        /* soft halo pass */
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${(0.085 * fade).toFixed(3)})`;
+        ctx.lineWidth = 14 * fade + 2;
+        ctx.stroke();
+        /* bright core pass */
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${(0.5 * fade).toFixed(3)})`;
+        ctx.lineWidth = 2.2 * fade + 0.4;
+        ctx.stroke();
+      }
+      /* luminous head dot */
+      const head = trail[n - 1];
+      const headFade = Math.max(0, 1 - (now - head.t) / LIFE);
+      if (headFade > 0) {
+        const glow = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 26);
+        glow.addColorStop(0, `rgba(120,200,255,${0.5 * headFade})`);
+        glow.addColorStop(0.35, `rgba(34,211,238,${0.18 * headFade})`);
+        glow.addColorStop(1, 'rgba(34,211,238,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(head.x, head.y, 26, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (trail.length) raf = requestAnimationFrame(draw);
+  }
+}
 
 /* ---- Theme ---- */
 function initTheme() {
