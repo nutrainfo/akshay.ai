@@ -2334,3 +2334,241 @@ body.compact .quick-card { padding: 1rem; }
   user-select: none;
 }
 [data-theme="light"] .footer::after { -webkit-text-stroke: 1px rgba(10, 15, 30, 0.06); }
+
+/* ============ 22 · ORNAMENTS II — thirty more details ============ */
+
+/* 01 · numbered chapters above each section */
+body { counter-reset: sec; }
+.section-header { counter-increment: sec; }
+.section-header::before {
+  content: '0' counter(sec);
+  display: block;
+  margin-bottom: 0.9rem;
+  font: 600 0.72rem/1 var(--font-head);
+  letter-spacing: 0.5em;
+  color: var(--text3);
+  opacity: 0.75;
+}
+
+/* 02 · nav links: animated underline */
+a.nav-link { background-image: linear-gradient(90deg, var(--blue-bright), var(--cyan)); background-repeat: no-repeat; background-size: 0% 2px; background-position: 14px calc(100% - 4px); transition: color var(--transition), background-color var(--transition), background-size 0.3s var(--ease); }
+a.nav-link:hover { background-size: calc(100% - 28px) 2px; }
+
+/* 03 · hand-drawn stroke under the hero headline */
+.hero-stroke {
+  display: block;
+  width: min(44%, 290px);
+  margin: 0.4rem auto 0;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: stroke-draw 1.1s var(--ease) 1s forwards;
+}
+@keyframes stroke-draw { to { stroke-dashoffset: 0; } }
+
+/* 04 · category-tinted calculator icons */
+.calc-card[data-cat="loan"] .calc-icon        { color: var(--gold);   background: rgba(245,200,107,0.09); border-color: rgba(245,200,107,0.2); }
+.calc-card[data-cat="tax"] .calc-icon         { color: var(--red);    background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.18); }
+.calc-card[data-cat="savings"] .calc-icon     { color: var(--emerald);background: rgba(16,185,129,0.09);  border-color: rgba(16,185,129,0.2); }
+.calc-card[data-cat="retirement"] .calc-icon  { color: var(--purple); background: rgba(167,139,250,0.09); border-color: rgba(167,139,250,0.2); }
+.calc-card[data-cat="business"] .calc-icon    { color: var(--cyan);   background: rgba(34,211,238,0.09);  border-color: rgba(34,211,238,0.2); }
+.calc-card[data-cat="real-estate"] .calc-icon { color: #FDBA74; background: rgba(253,186,116,0.09); border-color: rgba(253,186,116,0.2); }
+.calc-card[data-cat="insurance"] .calc-icon   { color: #86EFAC; background: rgba(134,239,172,0.09); border-color: rgba(134,239,172,0.2); }
+.calc-card[data-cat="crypto"] .calc-icon      { color: #F0ABFC; background: rgba(240,171,252,0.09); border-color: rgba(240,171,252,0.2); }
+.calc-card[data-cat="personal"] .calc-icon    { color: #93C5FD; background: rgba(147,197,253,0.09); border-color: rgba(147,197,253,0.2); }
+.calc-card[data-cat="stocks"] .calc-icon      { color: #67E8F9; background: rgba(103,232,249,0.09); border-color: rgba(103,232,249,0.2); }
+.calc-card[data-cat="startup"] .calc-icon     { color: #FCA5A5; background: rgba(252,165,165,0.09); border-color: rgba(252,165,165,0.2); }
+.calc-card[data-cat="education"] .calc-icon   { color: #C4B5FD; background: rgba(196,181,253,0.09); border-color: rgba(196,181,253,0.2); }
+
+/* 05 · engineering plus-ticks at section corners */
+.section > .container { position: relative; }
+.section > .container::before, .section > .container::after {
+  content: '+';
+  position: absolute; top: -30px;
+  font: 300 18px/1 var(--font-head);
+  color: rgba(96, 165, 250, 0.28);
+  pointer-events: none;
+}
+.section > .container::before { left: clamp(1.25rem, 4vw, 2rem); }
+.section > .container::after { right: clamp(1.25rem, 4vw, 2rem); }
+
+/* 06 · trophy watermark behind the compare verdict */
+.compare-verdict { position: relative; overflow: hidden; }
+.compare-verdict::before {
+  content: '🏆';
+  position: absolute; right: 0.4rem; bottom: -1.2rem;
+  font-size: 6.5rem;
+  opacity: 0.07;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+/* 07 · modal backdrop gets an aurora tint */
+.modal-overlay {
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(59, 130, 246, 0.08), transparent 60%),
+    rgba(3, 4, 6, 0.72);
+}
+
+/* 08 · designed empty states */
+.calc-empty {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.calc-empty::before {
+  content: '🔭';
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+/* 09 · footer links: arrow slides in */
+.footer-col a { position: relative; transition: color var(--transition), padding-left 0.25s var(--ease); }
+.footer-col a::before { content: '→'; position: absolute; left: -2px; opacity: 0; transition: all 0.25s var(--ease); color: var(--blue-bright); }
+.footer-col a:hover { padding-left: 1.15rem; }
+.footer-col a:hover::before { opacity: 1; left: 0; }
+
+/* 10 · iOS-style switches in settings */
+.toggle-row input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 38px; height: 22px; flex: none;
+  border-radius: 99px;
+  background: var(--surface2);
+  border: 1px solid var(--border-strong);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+.toggle-row input[type="checkbox"]::after {
+  content: '';
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--text2);
+  transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+}
+.toggle-row input[type="checkbox"]:checked {
+  background: linear-gradient(120deg, var(--accent-deep), var(--blue));
+  border-color: rgba(96, 165, 250, 0.6);
+}
+.toggle-row input[type="checkbox"]:checked::after { transform: translateX(16px); background: #fff; }
+.toggle-row input[type="checkbox"]:focus-visible { outline: 2px solid var(--blue-bright); outline-offset: 2px; }
+
+/* 11 · active chips wear a check */
+.chip.active::before { content: '✓'; font-weight: 800; margin-right: 0.35rem; }
+
+/* 12 · bottom-nav active indicator dot */
+.bottom-nav a, .bottom-nav button { position: relative; }
+.bottom-nav .bn-active::after {
+  content: '';
+  position: absolute; bottom: 5px; left: 50%;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* 13 · live pulsing dot in the hero badge */
+.hero-badge::before {
+  content: '';
+  width: 7px; height: 7px; flex: none;
+  margin-left: 0.35rem;
+  border-radius: 50%;
+  background: var(--emerald);
+  animation: live-pulse 2.4s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  55% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+}
+
+/* 14 · bento headline numbers glow on card hover */
+.bento .bento-value { transition: text-shadow 0.35s var(--ease); }
+.bento:hover .bento-value { text-shadow: 0 0 26px currentColor; }
+
+/* 15 · word tiles flip in when scored */
+.word-tile.hit, .word-tile.near, .word-tile.miss { animation: tile-flip 0.45s var(--ease); }
+@keyframes tile-flip { 0% { transform: rotateX(85deg); opacity: 0.4; } 100% { transform: rotateX(0); opacity: 1; } }
+
+/* 16 · scanner corner brackets on the QR frame */
+.coffee-qr-wrap { position: relative; }
+.coffee-qr-wrap::before, .coffee-qr-wrap::after {
+  content: '';
+  position: absolute;
+  width: 30px; height: 30px;
+  border: 3px solid var(--gold);
+  pointer-events: none;
+}
+.coffee-qr-wrap::before { top: -7px; left: -7px; border-right: none; border-bottom: none; border-radius: 10px 0 0 0; }
+.coffee-qr-wrap::after { bottom: -7px; right: -7px; border-left: none; border-top: none; border-radius: 0 0 10px 0; }
+
+/* 17 · streak flame breathes */
+.streak-chip { animation: flame-breathe 3s ease-in-out infinite; }
+@keyframes flame-breathe {
+  0%, 100% { box-shadow: 0 0 0 rgba(245, 200, 107, 0); }
+  50% { box-shadow: 0 0 16px rgba(245, 200, 107, 0.25); }
+}
+
+/* 18 · reveals now blur in like a lens focusing */
+.reveal { filter: blur(5px); }
+.reveal.visible { filter: blur(0); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease), filter 0.7s var(--ease); }
+
+/* 19 · clean number inputs (no spin buttons) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* 20 · inline links glow on hover */
+.link { transition: text-shadow 0.25s var(--ease); }
+.link:hover { text-shadow: 0 0 14px rgba(96, 165, 250, 0.65); }
+
+/* 21 · marquee separators become diamonds */
+.rate-marquee-track span::before { border-radius: 1px; transform: rotate(45deg); }
+
+/* 22 · hero stats lift on hover */
+.stat { transition: transform 0.3s var(--ease); }
+.stat:hover { transform: translateY(-4px); }
+
+/* 23 · scroll progress gets a comet head */
+.scroll-progress { overflow: visible; }
+.scroll-progress::after {
+  content: '';
+  position: absolute; right: -2px; top: -2px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--cyan);
+}
+
+/* 24 · headline results emit soft light */
+.result-main { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.22)); }
+
+/* 25 · focused fields highlight their label */
+.form-group:focus-within > label { color: var(--blue-bright); }
+
+/* 26 · badges lift when inspected */
+.badge { transition: transform 0.25s var(--ease), border-color 0.25s var(--ease), opacity 0.25s var(--ease), filter 0.25s var(--ease); }
+.badge:hover { transform: translateY(-3px); }
+
+/* 27 · light beam falls into the command palette */
+.palette-overlay::after {
+  content: '';
+  position: absolute; inset: 0 0 auto 0; height: 40vh;
+  background: radial-gradient(60% 100% at 50% 0%, rgba(96, 165, 250, 0.09), transparent 70%);
+  pointer-events: none;
+}
+
+/* 28 · winning column glows in the compare table */
+.compare-table td:has(.best-badge) { background: rgba(16, 185, 129, 0.07); box-shadow: inset 2px 0 0 rgba(16,185,129,0.4), inset -2px 0 0 rgba(16,185,129,0.4); }
+
+/* 29 · legal cards respond to touch */
+.legal-card { transition: transform 0.3s var(--ease), border-color 0.3s var(--ease); }
+.legal-card:hover { transform: translateY(-4px); border-color: var(--border-strong); }
+
+/* 30 · cookie banner springs up */
+.cookie-banner { animation: cookie-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both; }
+@keyframes cookie-spring {
+  from { opacity: 0; transform: translateX(-50%) translateY(26px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
