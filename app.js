@@ -2180,6 +2180,7 @@ const BADGES = {
   'personalized':   { emoji: '🎭', name: 'Regular Face',    desc: 'Told us your name' },
   'backup-pro':     { emoji: '💾', name: 'Backup Pro',      desc: 'Exported your data' },
   'secret-wealth':  { emoji: '🔑', name: 'Secret Key',      desc: 'Found the hidden word' },
+  'supporter':      { emoji: '☕', name: 'Coffee Patron',   desc: 'Checked out the support page' },
 };
 
 function getBadges() {
@@ -3166,6 +3167,27 @@ function initFYCountdown() {
   render();
   setInterval(render, 60000);
 }
+
+/* ============================================================
+   BUY ME A COFFEE
+   ============================================================ */
+function openCoffee() {
+  const modal = document.getElementById('coffee-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  award('supporter');
+}
+
+function closeCoffee() {
+  document.getElementById('coffee-modal')?.classList.add('hidden');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeCoffee();
+});
+document.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('coffee-modal')) closeCoffee();
+});
 
 /* ============================================================
    CONFETTI + EASTER EGG

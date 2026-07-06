@@ -164,6 +164,9 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Install App
       </button>
+      <button class="icon-btn coffee-nav-btn" onclick="openCoffee()" aria-label="Buy me a coffee" title="Buy me a coffee">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+      </button>
       <button id="theme-toggle" class="icon-btn" aria-label="Toggle light / dark theme">
         <svg id="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg id="theme-icon-sun" class="hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -607,6 +610,23 @@
         <div class="play-body" id="fy-body"><!-- JS --></div>
       </div>
 
+      <!-- Support card -->
+      <div class="bento glass glass-edge bento-static bento-accent-gold coffee-bento" style="grid-column: span 8" aria-label="Support FinCalc Pro">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+            Powered by Coffee
+          </span>
+        </div>
+        <div class="play-body coffee-bento-body">
+          <p class="coffee-lead">No ads. No sign-ups. No data collection. Just 130+ free tools built with way too much caffeine. If FinCalc Pro helped you plan smarter, you can fuel the next feature:</p>
+          <button class="btn btn-primary" onclick="openCoffee()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+            Buy me a coffee
+          </button>
+        </div>
+      </div>
+
       <!-- 8 · Achievements + streak -->
       <div class="bento bento-full glass glass-edge bento-static" aria-label="Your achievements">
         <div class="bento-head">
@@ -775,6 +795,10 @@
         </a>
         <p>India's most comprehensive free financial calculator platform.</p>
         <p class="footer-disclaimer"><strong>Not financial advice.</strong> For education only.</p>
+        <button class="btn btn-install" style="margin-top:0.9rem" onclick="openCoffee()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+          Buy me a coffee
+        </button>
       </div>
       <div class="footer-col">
         <h4>Calculators</h4>
@@ -881,6 +905,9 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
           Share
         </button>
+        <button class="icon-btn modal-tool coffee-tool" onclick="openCoffee()" aria-label="Buy me a coffee" title="Enjoying this? Buy me a coffee">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+        </button>
         <button class="modal-close" aria-label="Close calculator" id="modal-close">✕</button>
       </div>
     </div>
@@ -916,6 +943,29 @@
       <div class="shortcut-row"><span>Open selected calculator</span><span><span class="kbd">↵</span></span></div>
       <div class="shortcut-row"><span>Close modal / palette</span><span><span class="kbd">ESC</span></span></div>
       <div class="shortcut-row"><span>Show this panel</span><span><span class="kbd">?</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BUY ME A COFFEE ===== -->
+<button id="coffee-fab" class="coffee-fab" onclick="openCoffee()" aria-label="Buy me a coffee" title="Buy me a coffee">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+</button>
+
+<div id="coffee-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="coffee-title">
+  <div class="palette coffee-panel glass-edge">
+    <div class="palette-input-row">
+      <span class="coffee-title-emoji" aria-hidden="true">☕</span>
+      <strong id="coffee-title" style="font-family:var(--font-head);font-size:1.05rem;color:var(--text)">Buy me a coffee</strong>
+      <button class="modal-close" style="margin-left:auto" aria-label="Close" onclick="closeCoffee()">✕</button>
+    </div>
+    <div class="coffee-body">
+      <p class="coffee-lead">FinCalc Pro is free, ad-free and sign-up-free — and stays that way. If it saved you time (or money), a coffee keeps the servers warm. 💙</p>
+      <div class="coffee-qr-wrap">
+        <img src="assets/upi-qr.png" alt="UPI payment QR code — scan with any UPI app" class="coffee-qr" id="coffee-qr"
+             onerror="this.closest('.coffee-qr-wrap').innerHTML='&lt;p class=&quot;coffee-fallback&quot;&gt;QR temporarily unavailable.&lt;/p&gt;'" />
+      </div>
+      <p class="coffee-note">Scan with <b>PhonePe</b>, <b>GPay</b>, <b>Paytm</b> or any UPI app · any amount is appreciated</p>
     </div>
   </div>
 </div>
