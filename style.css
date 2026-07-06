@@ -2189,10 +2189,19 @@ body.compact .quick-card { padding: 1rem; }
 .coffee-pill-hero { margin-top: 2.2rem; padding: 0.7rem 1.5rem; font-size: 0.92rem; animation: coffee-glow 4.5s ease-in-out infinite, rise 0.7s var(--ease) 0.4s both; }
 .coffee-fab {
   position: fixed; bottom: 142px; right: 18px; z-index: 80;
-  width: auto; height: auto;
-  border-radius: 99px;
-  backdrop-filter: none; -webkit-backdrop-filter: none;
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, #FDE68A, #F5C86B 50%, #E9A23B);
+  border: 1px solid rgba(255, 235, 180, 0.8);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 22px rgba(233, 162, 59, 0.4);
+  transition: transform var(--transition), box-shadow var(--transition);
+  animation: coffee-glow 4.5s ease-in-out infinite;
 }
+.coffee-fab:hover { transform: translateY(-3px) scale(1.08); box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 36px rgba(233, 162, 59, 0.7); }
+.coffee-fab:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 @media (min-width: 861px) { .coffee-fab { bottom: 76px; right: 22px; } }
 
 .modal-support {
@@ -2207,6 +2216,6 @@ body.compact .quick-card { padding: 1rem; }
 @media (max-width: 860px) {
   .coffee-pill-nav { display: none; } /* the floating pill covers mobile */
   .coffee-pill-hero { font-size: 0.85rem; }
-  .coffee-fab { bottom: 148px; }
+
 }
 @media print { .modal-support, .coffee-pill { display: none !important; } }
