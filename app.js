@@ -89,7 +89,127 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroCanvas();
   initMagneticButtons();
   initCursorGlow();
+  renderSavedWidget();
+  renderRecentWidget();
+  initBackToTop();
+  initShortcutsPanel();
 });
+
+/* ============================================================
+   SAVED CALCULATIONS WIDGET (localStorage, device-only)
+   ============================================================ */
+function getSavedCalcs() {
+  try { return JSON.parse(localStorage.getItem('fincalc-saved') || '[]'); }
+  catch { return []; }
+}
+
+function relativeTime(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function renderSavedWidget() {
+  const list = document.getElementById('saved-list');
+  if (!list) return;
+  const saved = getSavedCalcs();
+  if (!saved.length) {
+    list.innerHTML = '<div class="saved-empty">Nothing saved yet — open any calculator and hit <b>Save</b> to pin the result here.</div>';
+    return;
+  }
+  list.innerHTML = saved.slice(0, 4).map((s, i) => `
+    <div class="saved-item">
+      <button class="saved-item-main" onclick="openSavedCalc(${i})" aria-label="Reopen ${s.name} with saved inputs">
+        <span class="saved-item-name">${s.name}</span>
+        <span class="saved-item-meta">${relativeTime(s.at)}</span>
+      </button>
+      <span class="saved-item-result">${s.result}</span>
+      <button class="saved-item-del" onclick="deleteSavedCalc(${i})" aria-label="Delete saved ${s.name}">✕</button>
+    </div>`).join('');
+}
+
+function openSavedCalc(index) {
+  const s = getSavedCalcs()[index];
+  if (!s || !CALCULATORS.find(c => c.id === s.id)) return;
+  openCalc(s.id);
+  /* restore the saved inputs, then recalculate */
+  Object.entries(s.inputs || {}).forEach(([elId, val]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.value = val;
+    const slider = document.getElementById(elId + '-slider');
+    if (slider) { slider.value = val; paintSlider(slider); }
+  });
+  calcLive(s.id);
+}
+
+function deleteSavedCalc(index) {
+  const saved = getSavedCalcs();
+  saved.splice(index, 1);
+  localStorage.setItem('fincalc-saved', JSON.stringify(saved));
+  renderSavedWidget();
+  showToast('Saved calculation removed');
+}
+
+/* ============================================================
+   RECENTLY USED WIDGET
+   ============================================================ */
+function trackRecent(id) {
+  try {
+    let recent = JSON.parse(localStorage.getItem('fincalc-recent') || '[]');
+    recent = [id, ...recent.filter(r => r !== id)].slice(0, 8);
+    localStorage.setItem('fincalc-recent', JSON.stringify(recent));
+  } catch { /* storage unavailable — skip */ }
+  renderRecentWidget();
+}
+
+function renderRecentWidget() {
+  const wrap = document.getElementById('recent-chips');
+  if (!wrap) return;
+  let recent = [];
+  try { recent = JSON.parse(localStorage.getItem('fincalc-recent') || '[]'); } catch {}
+  const calcs = recent.map(id => CALCULATORS.find(c => c.id === id)).filter(Boolean);
+  if (!calcs.length) {
+    wrap.innerHTML = '<div class="saved-empty">Calculators you open will appear here for one-tap access.</div>';
+    return;
+  }
+  wrap.innerHTML = calcs.map(c => `
+    <button class="recent-chip" onclick="openCalc('${c.id}')" aria-label="Open ${c.name}">
+      ${getIcon(c.id, 14)}
+      ${c.name}
+    </button>`).join('');
+}
+
+/* ============================================================
+   BACK TO TOP + SHORTCUTS PANEL
+   ============================================================ */
+function initBackToTop() {
+  const btn = document.getElementById('back-to-top');
+  if (!btn) return;
+  let visible = false;
+  window.addEventListener('scroll', () => {
+    const show = window.scrollY > 700;
+    if (show !== visible) { visible = show; btn.classList.toggle('hidden', !show); }
+  }, { passive: true });
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: App.reducedMotion ? 'auto' : 'smooth' }));
+}
+
+function initShortcutsPanel() {
+  const modal = document.getElementById('shortcuts-modal');
+  if (!modal) return;
+  document.addEventListener('keydown', (e) => {
+    const typing = /^(input|textarea|select)$/i.test(document.activeElement?.tagName || '');
+    if (e.key === '?' && !typing && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      modal.classList.toggle('hidden');
+    } else if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      modal.classList.add('hidden');
+    }
+  });
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+}
 
 /* ============================================================
    CURSOR GLOW TRAIL
@@ -760,7 +880,9 @@ function openCalc(id) {
   document.getElementById('modal-share').onclick = () => shareCalc(id);
   document.getElementById('modal-copy').onclick = () => copyResult(id);
   document.getElementById('modal-save').onclick = () => saveCalculation(id);
+  document.getElementById('modal-image').onclick = () => shareResultImage(id);
   document.getElementById('modal-pdf').onclick = () => window.print();
+  trackRecent(id);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', modalEscHandler);
 }
@@ -839,7 +961,126 @@ function saveCalculation(id) {
     at: new Date().toISOString(),
   });
   localStorage.setItem('fincalc-saved', JSON.stringify(saved.slice(0, 50)));
+  renderSavedWidget();
   showToast('Calculation saved on this device');
+}
+
+/* ---- Share result as a branded image ---- */
+function shareResultImage(id) {
+  const calc = CALCULATORS.find(c => c.id === id);
+  const body = document.getElementById('modal-body');
+  if (!calc || !body) return;
+  const card = body.querySelector('.result-card');
+  const label = card?.querySelector('.result-label')?.textContent.trim() || 'Result';
+  const main = card?.querySelector('.result-main')?.textContent.trim() || '--';
+  const items = [...(card?.querySelectorAll('.result-item') || [])].slice(0, 4).map(it => ({
+    val: it.querySelector('.result-item-val')?.textContent.trim() || '',
+    label: it.querySelector('.result-item-label')?.textContent.trim() || '',
+  }));
+
+  const W = 1200, H = 675, dpr = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  /* backdrop */
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0, 0, W, H);
+  let glow = ctx.createRadialGradient(W * 0.85, -60, 0, W * 0.85, -60, 700);
+  glow.addColorStop(0, 'rgba(59,130,246,0.28)');
+  glow.addColorStop(1, 'rgba(59,130,246,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  glow = ctx.createRadialGradient(60, H + 80, 0, 60, H + 80, 560);
+  glow.addColorStop(0, 'rgba(34,211,238,0.16)');
+  glow.addColorStop(1, 'rgba(34,211,238,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  /* faint grid */
+  ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 72) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 72) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  /* brand */
+  const M = 80;
+  ctx.fillStyle = '#3B82F6';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(M, 64, 40, 40, 11); else ctx.rect(M, 64, 40, 40);
+  ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(M + 9, 92); ctx.lineTo(M + 16, 78); ctx.lineTo(M + 23, 86); ctx.lineTo(M + 31, 73);
+  ctx.stroke();
+  ctx.font = '700 26px "Space Grotesk", Inter, sans-serif';
+  ctx.fillStyle = '#F4F6FB';
+  ctx.fillText('FinCalc', M + 54, 92);
+  ctx.fillStyle = '#60A5FA';
+  ctx.fillText('Pro', M + 54 + ctx.measureText('FinCalc').width, 92);
+
+  /* calculator name + headline result */
+  ctx.font = '600 24px Inter, sans-serif';
+  ctx.fillStyle = '#9BA3B5';
+  ctx.fillText(calc.name, M, 190);
+  ctx.font = '700 15px Inter, sans-serif';
+  ctx.fillStyle = '#5D6474';
+  ctx.fillText(label.toUpperCase(), M, 246);
+  const grad = ctx.createLinearGradient(M, 0, M + 700, 0);
+  grad.addColorStop(0, '#F4F6FB');
+  grad.addColorStop(1, '#60A5FA');
+  ctx.font = '700 92px "Space Grotesk", Inter, sans-serif';
+  ctx.fillStyle = grad;
+  ctx.fillText(main, M, 344);
+
+  /* breakdown tiles */
+  const tileW = (W - M * 2 - 3 * 20) / 4;
+  items.forEach((it, i) => {
+    const x = M + i * (tileW + 20), y = 408, th = 118;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, tileW, th, 14); else ctx.rect(x, y, tileW, th);
+    ctx.fill(); ctx.stroke();
+    ctx.font = '700 24px "Space Grotesk", Inter, sans-serif';
+    ctx.fillStyle = '#F4F6FB';
+    ctx.fillText(it.val, x + 20, y + 52, tileW - 40);
+    ctx.font = '600 13px Inter, sans-serif';
+    ctx.fillStyle = '#5D6474';
+    ctx.fillText(it.label.toUpperCase(), x + 20, y + 84, tileW - 40);
+  });
+
+  /* footer */
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.beginPath(); ctx.moveTo(M, H - 84); ctx.lineTo(W - M, H - 84); ctx.stroke();
+  ctx.font = '500 16px Inter, sans-serif';
+  ctx.fillStyle = '#5D6474';
+  ctx.fillText('fincalcpro.in — 130+ free calculators. No ads, no sign-up.', M, H - 46);
+  ctx.textAlign = 'right';
+  ctx.fillText('Not financial advice', W - M, H - 46);
+  ctx.textAlign = 'left';
+
+  canvas.toBlob((blob) => {
+    if (!blob) { showToast('Could not generate image'); return; }
+    const file = new File([blob], `fincalcpro-${id}.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'FinCalc Pro' })
+        .then(() => showToast('Result image shared'))
+        .catch(() => downloadBlob(blob, file.name));
+    } else {
+      downloadBlob(blob, file.name);
+    }
+  }, 'image/png');
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Result image downloaded');
 }
 
 function modalEscHandler(e) { if (e.key === 'Escape') closeModal(); }
@@ -1662,6 +1903,23 @@ function runComparison() {
 
   const maxFV = Math.max(...results.map(r => r.fv));
   const winner = results.find(r => r.fv === maxFV);
+
+  /* horizontal bar chart — color follows the instrument, in selection order */
+  const chartEl = document.getElementById('compare-chart');
+  if (chartEl) {
+    const barColors = [cssVar('--ch-1'), cssVar('--ch-2'), cssVar('--ch-4')];
+    chartEl.innerHTML = `<div class="compare-chart-title">Projected value after ${horizon} years</div>` +
+      results.map((r, i) => `
+        <div class="compare-bar-row">
+          <span class="compare-bar-label"><i style="background:${barColors[i]}"></i>${r.meta.label}</span>
+          <span class="compare-bar-track"><span class="compare-bar-fill" data-w="${((r.fv / maxFV) * 100).toFixed(1)}" style="background:${barColors[i]}"></span></span>
+          <span class="compare-bar-val">${FC.formatINR(r.fv)}</span>
+        </div>`).join('');
+    /* let the 0-width bars mount, then animate to size */
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      chartEl.querySelectorAll('.compare-bar-fill').forEach(bar => { bar.style.width = bar.dataset.w + '%'; });
+    }));
+  }
 
   const thead = document.getElementById('compare-thead');
   const tbody = document.getElementById('compare-tbody');
