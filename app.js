@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderRecentWidget();
   initBackToTop();
   initShortcutsPanel();
+  initPlayground();
 });
 
 /* ============================================================
@@ -324,7 +325,7 @@ function applyTheme(theme, persist) {
   const dmToggle = document.getElementById('dark-mode-toggle');
   if (dmToggle) dmToggle.checked = theme !== 'light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#F5F6F9' : '#050505');
-  if (persist) localStorage.setItem('fincalc-theme', theme);
+  if (persist) { localStorage.setItem('fincalc-theme', theme); award('theme-switcher'); }
   /* re-render canvases that bake in theme colors */
   refreshBentoSparks?.();
   if (App.currentCalc) calcLive(App.currentCalc);
@@ -883,6 +884,11 @@ function openCalc(id) {
   document.getElementById('modal-image').onclick = () => shareResultImage(id);
   document.getElementById('modal-pdf').onclick = () => window.print();
   trackRecent(id);
+  try {
+    const opened = (parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0) + 1;
+    localStorage.setItem('fincalc-opens', String(opened));
+    if (opened >= 5) award('explorer');
+  } catch {}
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', modalEscHandler);
 }
@@ -962,6 +968,7 @@ function saveCalculation(id) {
   });
   localStorage.setItem('fincalc-saved', JSON.stringify(saved.slice(0, 50)));
   renderSavedWidget();
+  award('first-save');
   showToast('Calculation saved on this device');
 }
 
@@ -1903,6 +1910,7 @@ function runComparison() {
 
   const maxFV = Math.max(...results.map(r => r.fv));
   const winner = results.find(r => r.fv === maxFV);
+  award('comparer');
 
   /* horizontal bar chart — color follows the instrument, in selection order */
   const chartEl = document.getElementById('compare-chart');
@@ -2071,3 +2079,441 @@ window.addEventListener('load', () => {
   const calc = params.get('calc');
   if (calc && CALCULATORS.find(c => c.id === calc)) openCalc(calc);
 });
+
+/* ============================================================
+   PLAYGROUND — games, experiments & retention features
+   ============================================================ */
+function initPlayground() {
+  initQuiz();
+  initGuessGame();
+  initTimeMachine();
+  initWealthTicker();
+  initRule72();
+  initGoalTracker();
+  initFactOfDay();
+  initStreak();
+  renderBadges();
+  initSurprise();
+  /* night-owl achievement */
+  const h = new Date().getHours();
+  if (h >= 22 || h < 5) award('night-owl');
+}
+
+/* ---- Achievements ---- */
+const BADGES = {
+  'explorer':       { emoji: '🧭', name: 'Explorer',        desc: 'Opened 5 calculators' },
+  'first-save':     { emoji: '📌', name: 'Keeper',          desc: 'Saved a calculation' },
+  'comparer':       { emoji: '⚖️', name: 'Analyst',         desc: 'Ran a comparison' },
+  'health-checked': { emoji: '🩺', name: 'Self-Aware',      desc: 'Took the health quiz' },
+  'sharp-guesser':  { emoji: '🎯', name: 'Sharp Guesser',   desc: 'Guessed within 10%' },
+  'planner':        { emoji: '🏔️', name: 'Goal Setter',     desc: 'Set a savings goal' },
+  'random-roller':  { emoji: '🎲', name: 'Adventurer',      desc: 'Rolled a random calculator' },
+  'theme-switcher': { emoji: '🌗', name: 'Day Trader',      desc: 'Switched the theme' },
+  'streak-3':       { emoji: '🔥', name: 'Regular',         desc: '3-day visit streak' },
+  'night-owl':      { emoji: '🦉', name: 'Night Owl',       desc: 'Planning finances after 10pm' },
+};
+
+function getBadges() {
+  try { return JSON.parse(localStorage.getItem('fincalc-badges') || '[]'); }
+  catch { return []; }
+}
+
+function award(id) {
+  if (!BADGES[id]) return;
+  const owned = getBadges();
+  if (owned.includes(id)) return;
+  owned.push(id);
+  try { localStorage.setItem('fincalc-badges', JSON.stringify(owned)); } catch {}
+  showToast(`${BADGES[id].emoji} Achievement unlocked: ${BADGES[id].name}`);
+  renderBadges();
+}
+
+function renderBadges() {
+  const wall = document.getElementById('badge-wall');
+  if (!wall) return;
+  const owned = getBadges();
+  wall.innerHTML = Object.entries(BADGES).map(([id, b]) => `
+    <div class="badge ${owned.includes(id) ? 'unlocked' : 'locked'}" title="${b.desc}">
+      <span class="badge-emoji">${b.emoji}</span>
+      <span><span class="badge-name">${b.name}</span><span class="badge-desc">${b.desc}</span></span>
+    </div>`).join('');
+}
+
+/* ---- Visit streak ---- */
+function initStreak() {
+  const chip = document.getElementById('streak-chip');
+  let data = { last: '', n: 0 };
+  try { data = JSON.parse(localStorage.getItem('fincalc-streak') || '{"last":"","n":0}'); } catch {}
+  const today = new Date().toISOString().slice(0, 10);
+  if (data.last !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    data.n = data.last === yesterday ? data.n + 1 : 1;
+    data.last = today;
+    try { localStorage.setItem('fincalc-streak', JSON.stringify(data)); } catch {}
+  }
+  if (data.n >= 3) award('streak-3');
+  if (chip) chip.innerHTML = `🔥 ${data.n}-day streak`;
+}
+
+/* ---- 1 · Financial health quiz ---- */
+const QUIZ = [
+  { q: 'How many months of expenses sit in your emergency fund?',
+    opts: [['None yet', 0], ['Less than 3 months', 8], ['3–6 months', 14], ['6+ months', 18]], fix: 'emergency-fund' },
+  { q: 'What share of your income do you save or invest each month?',
+    opts: [['Nothing right now', 0], ['Under 10%', 8], ['10–30%', 14], ['Over 30%', 18]], fix: 'budget-50-30-20' },
+  { q: 'Do you have health and term life insurance?',
+    opts: [['Neither', 0], ['Only one of them', 8], ['Both, adequately sized', 16]], fix: 'term-insurance' },
+  { q: 'Any high-interest debt (credit cards, personal loans)?',
+    opts: [['Yes, and it’s growing', 0], ['Some, but under control', 8], ['None', 16]], fix: 'debt-payoff' },
+  { q: 'How regularly do you invest?',
+    opts: [['I don’t invest yet', 0], ['Now and then', 8], ['Automatically, every month', 16]], fix: 'sip' },
+  { q: 'Have you planned for retirement?',
+    opts: [['Haven’t started', 0], ['Thinking about it', 8], ['Yes, with a target corpus', 16]], fix: 'retirement' },
+];
+
+let quizState = null;
+
+function initQuiz() {
+  if (!document.getElementById('quiz-body')) return;
+  resetQuiz();
+}
+
+function resetQuiz() {
+  quizState = { i: 0, score: 0, weak: [] };
+  renderQuizStep();
+}
+
+function renderQuizStep() {
+  const body = document.getElementById('quiz-body');
+  if (!body) return;
+  const { i } = quizState;
+  if (i >= QUIZ.length) { renderQuizResult(); return; }
+  const q = QUIZ[i];
+  body.innerHTML = `
+    <div class="quiz-progress">${QUIZ.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-options">
+      ${q.opts.map(([label, pts], k) => `
+        <button class="quiz-option" onclick="answerQuiz(${k})">
+          ${label}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>`).join('')}
+    </div>`;
+}
+
+function answerQuiz(optIndex) {
+  const q = QUIZ[quizState.i];
+  const [, pts] = q.opts[optIndex];
+  const maxPts = Math.max(...q.opts.map(o => o[1]));
+  quizState.score += pts;
+  quizState.weak.push({ fix: q.fix, gap: maxPts - pts });
+  quizState.i++;
+  renderQuizStep();
+}
+
+function renderQuizResult() {
+  const body = document.getElementById('quiz-body');
+  const score = quizState.score;
+  const verdict = score >= 75
+    ? { title: 'Excellent shape 🎉', text: 'Your fundamentals are solid. Fine-tune with the tools below and keep compounding.', color: 'var(--emerald)' }
+    : score >= 45
+      ? { title: 'On your way 👍', text: 'A strong start — closing the gaps below would meaningfully boost your score.', color: 'var(--gold)' }
+      : { title: 'Needs attention 🚨', text: 'No judgement — a few focused fixes below will transform this score fast.', color: 'var(--red)' };
+  const suggests = quizState.weak
+    .filter(w => w.gap > 0)
+    .sort((a, b) => b.gap - a.gap)
+    .slice(0, 3)
+    .map(w => CALCULATORS.find(c => c.id === w.fix))
+    .filter(Boolean);
+  const R = 58, C = 2 * Math.PI * R;
+  body.innerHTML = `
+    <div class="quiz-result">
+      <div class="quiz-gauge">
+        <svg width="132" height="132" viewBox="0 0 132 132">
+          <circle class="quiz-gauge-track" cx="66" cy="66" r="${R}"/>
+          <circle class="quiz-gauge-fill" id="quiz-gauge-fill" cx="66" cy="66" r="${R}"
+            stroke="${verdict.color}" stroke-dasharray="${C}" stroke-dashoffset="${C}"/>
+        </svg>
+        <div class="quiz-gauge-num"><span id="quiz-score-num">0</span><small>OUT OF 100</small></div>
+      </div>
+      <div class="quiz-verdict">
+        <h4>${verdict.title}</h4>
+        <p>${verdict.text}</p>
+        <div class="quiz-suggests">
+          ${suggests.map(c => `<button class="chip" onclick="openCalc('${c.id}')">${c.name}</button>`).join('')}
+          <button class="chip" onclick="resetQuiz()">↻ Retake</button>
+        </div>
+      </div>
+    </div>`;
+  /* animate ring + number */
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('quiz-gauge-fill').style.strokeDashoffset = C * (1 - score / 100);
+    const numEl = document.getElementById('quiz-score-num');
+    const t0 = performance.now();
+    const tick = (t) => {
+      const p = Math.min((t - t0) / 1100, 1);
+      numEl.textContent = Math.round(score * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    if (App.reducedMotion) numEl.textContent = score; else requestAnimationFrame(tick);
+  }));
+  award('health-checked');
+}
+
+/* ---- 2 · Compounding guess game ---- */
+let guessRound = null;
+
+function initGuessGame() {
+  if (!document.getElementById('guess-body')) return;
+  updateGuessBest();
+  nextGuessRound();
+}
+
+function updateGuessBest() {
+  const best = parseFloat(localStorage.getItem('fincalc-guess-best') || 'NaN');
+  const el = document.getElementById('guess-best');
+  if (el && !isNaN(best)) el.textContent = `Best: ${best.toFixed(0)}% off`;
+}
+
+function nextGuessRound() {
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const m = pick([2000, 5000, 10000, 20000]);
+  const r = pick([10, 12, 15]);
+  const y = pick([10, 15, 20, 25]);
+  guessRound = { m, r, y, actual: FC.sipFV(m, r / 100, y), invested: m * 12 * y };
+  const body = document.getElementById('guess-body');
+  const max = Math.ceil(guessRound.actual * 2.1 / 100000) * 100000;
+  const start = Math.round(max / 2 / 100000) * 100000;
+  body.innerHTML = `
+    <div class="guess-prompt">Invest <b>${FC.formatINR(m)}/month</b> at <b>${r}% p.a.</b> for <b>${y} years</b>. What do you end up with?</div>
+    <div class="guess-value" id="guess-value">${FC.formatINR(start)}</div>
+    <input type="range" id="guess-slider" class="range-input" min="100000" max="${max}" step="100000" value="${start}"
+      aria-label="Your guess" oninput="document.getElementById('guess-value').textContent = FC.formatINR(parseFloat(this.value))" />
+    <div class="guess-actions">
+      <button class="btn btn-primary btn-sm" onclick="revealGuess()">Lock in my guess</button>
+    </div>`;
+  paintAllSliders(body);
+}
+
+function revealGuess() {
+  const guess = parseFloat(document.getElementById('guess-slider').value);
+  const { actual, invested } = guessRound;
+  const offPct = Math.abs(guess - actual) / actual * 100;
+  const best = parseFloat(localStorage.getItem('fincalc-guess-best') || 'Infinity');
+  if (offPct < best) { try { localStorage.setItem('fincalc-guess-best', String(offPct)); } catch {} }
+  updateGuessBest();
+  if (offPct <= 10) award('sharp-guesser');
+  const grade = offPct <= 10 ? '🎯 Scarily accurate!' : offPct <= 30 ? '👏 Close — great instincts.' : guess < actual ? '🤯 Way low — compounding wins again.' : '😅 Too optimistic this time.';
+  const body = document.getElementById('guess-body');
+  body.innerHTML = `
+    <div class="guess-prompt">You guessed <b>${FC.formatINR(guess)}</b> — the real answer is</div>
+    <div class="guess-reveal">
+      <div class="guess-actual">${FC.formatINR(actual)}</div>
+      <div class="guess-note">${grade} You were <b>${offPct.toFixed(0)}% off</b>. Total invested: ${FC.formatINR(invested)} — the other ${FC.formatINR(actual - invested)} is pure compounding.</div>
+    </div>
+    <div class="guess-actions">
+      <button class="btn btn-primary btn-sm" onclick="nextGuessRound()">Next round</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCalc('sip')">Open SIP calculator</button>
+    </div>`;
+}
+
+/* ---- 3 · Inflation time machine ---- */
+function initTimeMachine() {
+  const amount = document.getElementById('tm-amount');
+  const year = document.getElementById('tm-year');
+  if (!amount || !year) return;
+  const AVG_INFLATION = 0.07;
+  const NOW = 2026;
+  const update = () => {
+    const amt = parseFloat(amount.value) || 0;
+    const yr = parseInt(year.value, 10);
+    document.getElementById('tm-year-label').textContent = yr;
+    const factor = Math.pow(1 + AVG_INFLATION, NOW - yr);
+    document.getElementById('tm-result').innerHTML =
+      `had the buying power of <b>${FC.formatINR(amt * factor)}</b> today.<br>` +
+      `Flip side: today's ${FC.formatINR(amt)} would feel like <b>${FC.formatINR(amt / factor)}</b> back in ${yr}. <span style="color:var(--text3)">(at ~7% avg. inflation)</span>`;
+  };
+  amount.addEventListener('input', update);
+  year.addEventListener('input', update);
+  document.querySelectorAll('[data-tm]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const [a, y] = chip.dataset.tm.split(',');
+      amount.value = a; year.value = y;
+      paintSlider(year);
+      update();
+    });
+  });
+  paintSlider(year);
+  update();
+}
+
+/* ---- 4 · Wealth ticker ---- */
+function initWealthTicker() {
+  const el = document.getElementById('ticker-earned');
+  if (!el) return;
+  const PER_SECOND = 10000000 * 0.12 / (365 * 86400); /* ₹1 Cr at 12% p.a. */
+  const t0 = performance.now();
+  let lastText = '';
+  const tick = () => {
+    const earned = (performance.now() - t0) / 1000 * PER_SECOND;
+    const text = '₹' + earned.toFixed(2);
+    if (text !== lastText) { el.textContent = text; lastText = text; }
+    requestAnimationFrame(tick);
+  };
+  if (App.reducedMotion) {
+    setInterval(() => { el.textContent = '₹' + ((performance.now() - t0) / 1000 * PER_SECOND).toFixed(2); }, 1000);
+  } else {
+    requestAnimationFrame(tick);
+  }
+}
+
+/* ---- 5 · Rule of 72 ---- */
+function initRule72() {
+  const slider = document.getElementById('r72-rate');
+  if (!slider) return;
+  const update = () => {
+    const r = parseFloat(slider.value);
+    document.getElementById('r72-rate-label').textContent = r + '%';
+    document.getElementById('r72-double').textContent = (72 / r).toFixed(1) + ' yrs';
+    document.getElementById('r72-quad').textContent = (144 / r).toFixed(0) + ' yrs';
+    document.getElementById('r72-oct').textContent = (216 / r).toFixed(0) + ' yrs';
+  };
+  slider.addEventListener('input', update);
+  paintSlider(slider);
+  update();
+}
+
+/* ---- 6 · Goal tracker ---- */
+function getGoal() {
+  try { return JSON.parse(localStorage.getItem('fincalc-goal') || 'null'); }
+  catch { return null; }
+}
+
+function initGoalTracker() {
+  renderGoal();
+}
+
+function renderGoal() {
+  const body = document.getElementById('goal-body');
+  if (!body) return;
+  const goal = getGoal();
+  if (!goal) { renderGoalForm(); return; }
+  const pct = Math.min(100, (goal.saved / goal.target) * 100);
+  /* months until (saved + monthly SIP) reaches target */
+  const i = goal.rate / 100 / 12;
+  let months = 0, fv = goal.saved;
+  while (fv < goal.target && months < 1200) {
+    fv = fv * (1 + i) + goal.monthly;
+    months++;
+  }
+  const eta = new Date();
+  eta.setMonth(eta.getMonth() + months);
+  const etaText = months >= 1200
+    ? 'over 100 years — raise the monthly amount!'
+    : `${eta.toLocaleString('en-IN', { month: 'short', year: 'numeric' })} (${(months / 12).toFixed(1)} yrs)`;
+  const R = 54, C = 2 * Math.PI * R;
+  body.innerHTML = `
+    <div class="goal-view">
+      <div class="goal-ring">
+        <svg width="124" height="124" viewBox="0 0 124 124">
+          <defs>
+            <linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#22D3EE"/>
+            </linearGradient>
+          </defs>
+          <circle class="goal-ring-track" cx="62" cy="62" r="${R}"/>
+          <circle class="goal-ring-fill" id="goal-ring-fill" cx="62" cy="62" r="${R}"
+            stroke-dasharray="${C}" stroke-dashoffset="${C}"/>
+        </svg>
+        <div class="goal-ring-num">${pct.toFixed(0)}%<small>SAVED</small></div>
+      </div>
+      <div class="goal-info">
+        <h4>${goal.name}</h4>
+        <p><b>${FC.formatINR(goal.saved)}</b> of <b>${FC.formatINR(goal.target)}</b> saved.<br>
+        Adding ${FC.formatINR(goal.monthly)}/month at ${goal.rate}% p.a., you'll get there by <b>${etaText}</b>.</p>
+        <div class="goal-actions">
+          <button class="btn btn-ghost btn-sm" onclick="renderGoalForm()">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearGoal()">Clear</button>
+        </div>
+      </div>
+    </div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('goal-ring-fill').style.strokeDashoffset = C * (1 - pct / 100);
+  }));
+}
+
+function renderGoalForm() {
+  const body = document.getElementById('goal-body');
+  const g = getGoal() || { name: 'Dream home down payment', target: 2000000, monthly: 15000, saved: 200000, rate: 12 };
+  body.innerHTML = `
+    <div class="goal-form">
+      <div class="form-group goal-span-2"><label>Goal name</label><input class="input" id="goal-name" value="${g.name}" maxlength="60" /></div>
+      <div class="form-group"><label>Target (₹)</label><input type="number" class="input" id="goal-target" value="${g.target}" min="1000" /></div>
+      <div class="form-group"><label>Saved so far (₹)</label><input type="number" class="input" id="goal-saved" value="${g.saved}" min="0" /></div>
+      <div class="form-group"><label>Monthly investment (₹)</label><input type="number" class="input" id="goal-monthly" value="${g.monthly}" min="0" /></div>
+      <div class="form-group"><label>Expected return</label>
+        <select class="input" id="goal-rate">
+          ${[6, 8, 10, 12, 15].map(r => `<option value="${r}"${r === g.rate ? ' selected' : ''}>${r}% p.a.</option>`).join('')}
+        </select>
+      </div>
+      <div class="goal-span-2"><button class="btn btn-primary btn-sm" onclick="saveGoal()">Set my goal</button></div>
+    </div>`;
+}
+
+function saveGoal() {
+  const goal = {
+    name: (document.getElementById('goal-name').value || 'My goal').slice(0, 60),
+    target: Math.max(1000, parseFloat(document.getElementById('goal-target').value) || 0),
+    saved: Math.max(0, parseFloat(document.getElementById('goal-saved').value) || 0),
+    monthly: Math.max(0, parseFloat(document.getElementById('goal-monthly').value) || 0),
+    rate: parseFloat(document.getElementById('goal-rate').value) || 12,
+  };
+  try { localStorage.setItem('fincalc-goal', JSON.stringify(goal)); } catch {}
+  award('planner');
+  renderGoal();
+  showToast('Goal saved — tracked on this device');
+}
+
+function clearGoal() {
+  localStorage.removeItem('fincalc-goal');
+  renderGoalForm();
+}
+
+/* ---- 7 · Money fact of the day ---- */
+const MONEY_FACTS = [
+  'If you invest ₹5,000/month from age 25 instead of 35, you retire with roughly 3× the corpus — the first decade does the heaviest lifting.',
+  'The Rule of 72: divide 72 by your return rate to know how many years your money takes to double. At 12%, that’s just 6 years.',
+  'A daily ₹200 food-delivery habit is ₹73,000 a year — SIP’d at 12% for 20 years, it’s over ₹59 lakh.',
+  'Inflation at 6% silently halves your money’s buying power every 12 years. Cash "saved" under the mattress is money shrinking.',
+  'In a 20-year home loan at 8.5%, you pay almost as much interest as the house itself cost. One extra EMI a year can cut years off the loan.',
+  'PPF is one of the very few EEE instruments in India — exempt on deposit, exempt on growth, exempt on withdrawal.',
+  'Equity has beaten inflation in every 15-year rolling period of Indian market history — volatility smooths out with time.',
+  'A 1% higher expense ratio on a mutual fund can quietly eat ~20% of your final corpus over 30 years. Fees compound too.',
+  'Your emergency fund isn’t an investment — it’s insurance. Six months of expenses in a liquid fund beats returns you’d panic-sell.',
+  'Step-up SIPs are the cheat code: increasing your SIP by just 10% a year can nearly double your final corpus versus a flat SIP.',
+  'The 50/30/20 rule: 50% needs, 30% wants, 20% savings. If you can flip the 30 and the 20, you’re ahead of almost everyone.',
+  'Term insurance costing ₹700/month can protect your family with ₹1 crore. ULIPs mixing insurance with investment usually do both badly.',
+  'Buying a ₹10 lakh car on EMI costs ~₹13 lakh. The same EMI SIP’d for those 5 years would grow to ~₹16 lakh instead.',
+  'Compounding is back-loaded: in a 30-year SIP, more than half your final corpus typically arrives in the last 8 years. Don’t quit early.',
+  'NPS gives an extra ₹50,000 tax deduction under 80CCD(1B) — over and above the 80C limit most people max out.',
+  'Timing the market badly beats not investing at all: even someone who invested only at every market peak since 2000 still earned ~10% p.a.',
+];
+
+function initFactOfDay() {
+  const el = document.getElementById('fact-text');
+  if (!el) return;
+  const day = Math.floor(Date.now() / 86400000);
+  let offset = 0;
+  const show = () => { el.textContent = MONEY_FACTS[(day + offset) % MONEY_FACTS.length]; };
+  document.getElementById('fact-next')?.addEventListener('click', () => { offset++; show(); });
+  show();
+}
+
+/* ---- 10 · Surprise me ---- */
+function initSurprise() {
+  document.getElementById('surprise-btn')?.addEventListener('click', () => {
+    const c = CALCULATORS[Math.floor(Math.random() * CALCULATORS.length)];
+    award('random-roller');
+    openCalc(c.id);
+  });
+}

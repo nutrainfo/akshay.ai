@@ -148,6 +148,7 @@
         </div>
       </div>
       <a href="#dashboard" class="nav-link">Dashboard</a>
+      <a href="#playground" class="nav-link">Playground</a>
       <a href="#compare" class="nav-link">Compare</a>
       <a href="#legal" class="nav-link">Legal</a>
     </nav>
@@ -376,6 +377,141 @@
   </div>
 </section>
 
+<!-- ===== PLAYGROUND ===== -->
+<section id="playground" class="section" aria-labelledby="play-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Playground</span>
+      <h2 id="play-heading">Sharpen your money instincts</h2>
+      <p class="section-subtitle">Games, experiments and daily nuggets — because finance sticks when it's fun.</p>
+    </div>
+
+    <div class="bento-grid">
+      <!-- 1 · Financial health score quiz -->
+      <div class="bento bento-lg glass glass-edge bento-static" aria-label="Financial health score quiz">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Financial Health Score
+          </span>
+          <span class="bento-open">~60 seconds</span>
+        </div>
+        <div class="play-body" id="quiz-body"><!-- JS --></div>
+      </div>
+
+      <!-- 2 · Compounding guess game -->
+      <div class="bento bento-lg glass glass-edge bento-static" aria-label="Guess the future value game">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+            Beat the Compounding Curve
+          </span>
+          <span class="bento-open" id="guess-best"></span>
+        </div>
+        <div class="play-body" id="guess-body"><!-- JS --></div>
+      </div>
+
+      <!-- 3 · Inflation time machine -->
+      <div class="bento bento-md glass glass-edge bento-static bento-accent-cyan" aria-label="Inflation time machine">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 16.5 14.5"/><path d="M2 12h2M20 12h2"/></svg>
+            Inflation Time Machine
+          </span>
+        </div>
+        <div class="play-body">
+          <div class="tm-row">
+            <span class="tm-prefix">₹</span>
+            <input type="number" id="tm-amount" class="input input-num tm-amount" value="100" min="1" aria-label="Amount" />
+            <span class="tm-mid">in</span>
+            <strong id="tm-year-label" class="tm-year">1995</strong>
+          </div>
+          <input type="range" id="tm-year" class="range-input" min="1980" max="2020" step="1" value="1995" aria-label="Year" />
+          <div class="tm-result" id="tm-result"></div>
+          <div class="tm-chips">
+            <button class="chip" data-tm="100,1990">₹100 in 1990</button>
+            <button class="chip" data-tm="1000,2000">₹1,000 in 2000</button>
+            <button class="chip" data-tm="100000,2010">₹1L in 2010</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 · Wealth per second ticker -->
+      <div class="bento bento-md glass glass-edge bento-static bento-accent-emerald" aria-label="Live compounding ticker">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            Money Never Sleeps
+          </span>
+          <span class="bento-open">Live</span>
+        </div>
+        <div class="play-body">
+          <p class="ticker-lead">₹1 crore invested at 12% p.a. has earned</p>
+          <div class="bento-value" id="ticker-earned">₹0.00</div>
+          <p class="bento-sub">since you opened this page — that's <b>₹32,877 a day</b>, working while you sleep.</p>
+        </div>
+      </div>
+
+      <!-- 5 · Rule of 72 -->
+      <div class="bento bento-md glass glass-edge bento-static bento-accent-gold" aria-label="Rule of 72 doubling calculator">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+            The Rule of 72
+          </span>
+        </div>
+        <div class="play-body">
+          <div class="r72-head">At <strong id="r72-rate-label">12%</strong> p.a., money doubles every</div>
+          <div class="bento-value" id="r72-double">6.0 yrs</div>
+          <input type="range" id="r72-rate" class="range-input" min="1" max="30" step="0.5" value="12" aria-label="Return rate" />
+          <div class="r72-grid">
+            <span>4× in <b id="r72-quad">12 yrs</b></span>
+            <span>8× in <b id="r72-oct">18 yrs</b></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 · My goal tracker -->
+      <div class="bento bento-lg glass glass-edge bento-static" aria-label="Personal goal tracker">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            My Goal
+          </span>
+          <span class="bento-open" title="Stored only in this browser">On this device</span>
+        </div>
+        <div class="play-body" id="goal-body"><!-- JS --></div>
+      </div>
+
+      <!-- 7 · Money fact of the day -->
+      <div class="bento bento-lg glass glass-edge bento-static bento-accent-purple" aria-label="Money fact of the day">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 4 12.7c-.6.5-1 1.2-1 2V17H9v-.3c0-.8-.4-1.5-1-2A7 7 0 0 1 12 2z"/></svg>
+            Money Fact of the Day
+          </span>
+          <button class="btn btn-ghost btn-sm" id="fact-next">Another one →</button>
+        </div>
+        <div class="play-body">
+          <p class="fact-text" id="fact-text"></p>
+        </div>
+      </div>
+
+      <!-- 8 · Achievements + streak -->
+      <div class="bento bento-full glass glass-edge bento-static" aria-label="Your achievements">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg>
+            Achievements
+          </span>
+          <span class="streak-chip" id="streak-chip"></span>
+        </div>
+        <div class="badge-wall" id="badge-wall"><!-- JS --></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ===== CALCULATORS ===== -->
 <section id="calculators" class="section section-alt" aria-labelledby="calc-heading">
   <div class="container">
@@ -386,9 +522,15 @@
     </div>
 
     <div class="calc-toolbar">
-      <div class="calc-search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
-        <input type="search" id="calc-search" class="input calc-search" placeholder="Search 130+ calculators…" aria-label="Search calculators" />
+      <div class="calc-search-row">
+        <div class="calc-search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input type="search" id="calc-search" class="input calc-search" placeholder="Search 130+ calculators…" aria-label="Search calculators" />
+        </div>
+        <button class="btn btn-outline surprise-btn" id="surprise-btn" title="Open a random calculator">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+          Surprise me
+        </button>
       </div>
 
       <div class="calc-filters" role="group" aria-label="Filter calculators">
