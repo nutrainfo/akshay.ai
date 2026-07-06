@@ -485,7 +485,7 @@ select.input option { background: var(--bg2); color: var(--text); }
 .form-hint { font-size: 0.78rem; color: var(--text3); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-.slider-row { display: grid; grid-template-columns: 1fr 118px; gap: 0.9rem; align-items: center; }
+.slider-row { display: grid; grid-template-columns: 1fr 168px; gap: 0.9rem; align-items: center; }
 .input-num { padding: 0.5rem 0.65rem; font-size: 0.88rem; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* premium range slider */
@@ -1896,7 +1896,7 @@ select.input option { background: var(--bg2); color: var(--text); }
   .hero { padding-top: calc(var(--nav-h) + 64px); }
   body { padding-bottom: 76px; }
   .btn-install { display: none; }
-  .slider-row { grid-template-columns: 1fr 96px; }
+  .slider-row { grid-template-columns: 1fr 148px; }
   .ladder-row { grid-template-columns: 1fr 1fr; }
 }
 
@@ -2354,16 +2354,6 @@ body { counter-reset: sec; }
 a.nav-link { background-image: linear-gradient(90deg, var(--blue-bright), var(--cyan)); background-repeat: no-repeat; background-size: 0% 2px; background-position: 14px calc(100% - 4px); transition: color var(--transition), background-color var(--transition), background-size 0.3s var(--ease); }
 a.nav-link:hover { background-size: calc(100% - 28px) 2px; }
 
-/* 03 · hand-drawn stroke under the hero headline */
-.hero-stroke {
-  display: block;
-  width: min(44%, 290px);
-  margin: 0.4rem auto 0;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: stroke-draw 1.1s var(--ease) 1s forwards;
-}
-@keyframes stroke-draw { to { stroke-dashoffset: 0; } }
 
 /* 04 · category-tinted calculator icons */
 .calc-card[data-cat="loan"] .calc-icon        { color: var(--gold);   background: rgba(245,200,107,0.09); border-color: rgba(245,200,107,0.2); }
@@ -2571,4 +2561,134 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 @keyframes cookie-spring {
   from { opacity: 0; transform: translateX(-50%) translateY(26px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ============ 23 · FEATURE PACK 4 ============ */
+
+/* number steppers in calculator inputs */
+.num-stepper { display: flex; align-items: center; gap: 3px; }
+.num-stepper .input-num { flex: 1; min-width: 0; }
+.step-btn {
+  flex: none;
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 700 0.95rem/1 var(--font-body);
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+}
+.step-btn:hover { color: var(--blue-bright); border-color: rgba(96,165,250,0.5); }
+.step-btn:active { transform: scale(0.9); }
+
+/* result delta indicator */
+.result-delta {
+  display: inline-block;
+  margin-left: 0.6rem;
+  font: 700 0.8rem/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+  -webkit-text-fill-color: currentColor;
+}
+.result-delta.show { opacity: 1; }
+.result-delta.up { color: var(--emerald); }
+.result-delta.down { color: var(--red); }
+
+/* share popover */
+.share-wrap { position: relative; }
+.share-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 10;
+  display: flex; flex-direction: column; gap: 0.15rem;
+  min-width: 190px;
+  padding: 0.4rem;
+  background: var(--glass-strong);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+}
+.share-pop button, .share-pop a {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  font: 600 0.82rem/1 var(--font-body);
+  color: var(--text2);
+  background: none; border: none; cursor: pointer;
+  border-radius: 9px;
+  text-decoration: none;
+  text-align: left;
+  transition: all var(--transition);
+}
+.share-pop button:hover, .share-pop a:hover { background: var(--surface2); color: var(--text); }
+.share-pop .share-ic { font-size: 1rem; width: 20px; text-align: center; }
+
+/* voice mic button in palette */
+.mic-btn { flex: none; }
+.mic-btn.listening { color: var(--red); animation: live-pulse 1.2s ease-in-out infinite; border-radius: 50%; }
+
+/* FAQ accordion */
+.faq-list { display: flex; flex-direction: column; gap: 0.75rem; max-width: 760px; margin: 0 auto; }
+.faq-item { padding: 0; overflow: hidden; }
+.faq-item summary {
+  list-style: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1.1rem 1.4rem;
+  font: 600 0.95rem/1.4 var(--font-head);
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: '+';
+  flex: none;
+  font: 300 1.4rem/1 var(--font-head);
+  color: var(--blue-bright);
+  transition: transform 0.3s var(--ease);
+}
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item summary:hover { color: var(--blue-bright); }
+.faq-item p {
+  padding: 0 1.4rem 1.2rem;
+  font-size: 0.88rem; line-height: 1.7;
+  color: var(--text2);
+}
+
+/* glossary + changelog lists */
+.glossary-list, .changelog-list { padding: 0.6rem 0.75rem 0.9rem; }
+.gloss-item { padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--border); }
+.gloss-item:last-child { border-bottom: none; }
+.gloss-term { font: 700 0.9rem/1.3 var(--font-head); color: var(--blue-bright); }
+.gloss-def { font-size: 0.82rem; line-height: 1.6; color: var(--text2); margin-top: 0.15rem; }
+.cl-entry { padding: 0.8rem 0.5rem; border-bottom: 1px solid var(--border); }
+.cl-entry:last-child { border-bottom: none; }
+.cl-head { display: flex; align-items: baseline; gap: 0.6rem; }
+.cl-ver { font: 700 0.85rem/1 var(--font-head); color: var(--gold); }
+.cl-date { font-size: 0.7rem; color: var(--text3); }
+.cl-entry ul { margin: 0.45rem 0 0 1.1rem; font-size: 0.82rem; line-height: 1.65; color: var(--text2); }
+
+/* settings extras */
+.fontsize-row { display: flex; gap: 0.35rem; }
+.fontsize-row .btn.active { color: var(--blue-bright); background: rgba(59,130,246,0.1); }
+
+/* high contrast mode */
+body.hc { --text2: #C7CEDC; --text3: #97A0B3; --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.26); }
+[data-theme="light"] body.hc, body.hc[data-theme] {}
+body.hc .calc-card p, body.hc .bento-sub, body.hc .mini-sub { color: var(--text2); }
+
+/* offline chip */
+.net-chip {
+  position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
+  z-index: 96;
+  padding: 0.45rem 1.1rem;
+  font: 600 0.78rem/1 var(--font-body);
+  color: var(--gold);
+  background: var(--glass-strong);
+  border: 1px solid rgba(245,200,107,0.4);
+  border-radius: 99px;
+  box-shadow: var(--shadow);
 }

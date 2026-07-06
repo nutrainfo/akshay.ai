@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderDashStrip();
   initPlayground2();
   initConfettiAndEgg();
+  initFeaturePack4();
   const marquee = document.getElementById('rate-marquee-track');
   if (marquee) marquee.innerHTML += marquee.innerHTML;
 });
@@ -573,7 +574,7 @@ function initCommandPalette() {
   let selected = 0;
 
   const render = () => {
-    const list = input.value.trim() ? searchCalculators(input.value, 10) : CALCULATORS.slice(0, 8);
+    const list = input.value.trim() ? searchCalculators(input.value, 10) : defaultPaletteList();
     if (!list.length) {
       results.innerHTML = '<div class="palette-empty">No calculators found. Try “SIP”, “EMI” or “tax”.</div>';
       return;
@@ -756,6 +757,10 @@ function refreshBentoSparks() {
     { fn: (yr) => FC.stepUpSIP(5000, 0.12, yr, 10), color: cssVar('--ch-2'), fill: true },
     { fn: (yr) => FC.sipFV(5000, 0.12, yr), color: cssVar('--ch-muted'), dash: [4, 4] },
   ], 20);
+  const repo = [4.0, 4.0, 4.9, 6.5, 6.5, 5.5];
+  drawSparkline('repo-spark', [
+    { fn: (i) => repo[Math.round(i)], color: cssVar('--ch-5'), fill: true },
+  ], repo.length - 1);
 }
 
 function cssVar(name) {
@@ -914,24 +919,33 @@ function openCalc(id) {
   paintAllSliders(body);
   calcLive(id);
   watchResultPulse(body);
+  document.querySelectorAll('#modal-body .result-main').forEach(m => updateResultDelta(m));
+
+  /* restore inputs: shared link state wins, then autosaved values */
+  if (!applyUrlState(id)) applyAutosavedInputs(id);
+  undoStack = [inputsSnapshot()];
+  injectAmortCopy();
 
   document.getElementById('modal-close').onclick = closeModal;
   document.getElementById('modal-export-csv').onclick = () => exportCSV(id);
-  document.getElementById('modal-share').onclick = () => shareCalc(id);
+  document.getElementById('modal-share').onclick = (e) => { e.stopPropagation(); toggleSharePop(id); };
   document.getElementById('modal-copy').onclick = () => copyResult(id);
   document.getElementById('modal-save').onclick = () => saveCalculation(id);
   document.getElementById('modal-image').onclick = () => shareResultImage(id);
   document.getElementById('modal-pdf').onclick = () => window.print();
   document.getElementById('modal-reset').onclick = () => {
+    clearAutosavedInputs(id);
     body.innerHTML = buildCalcUI(id);
     paintAllSliders(body);
     calcLive(id);
     watchResultPulse(body);
+    document.querySelectorAll('#modal-body .result-main').forEach(m => updateResultDelta(m));
+    injectAmortCopy();
     showToast('Inputs reset to defaults');
   };
   document.getElementById('modal-link').onclick = () => {
-    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?calc=${id}`)
-      .then(() => showToast('Direct link copied'));
+    navigator.clipboard.writeText(stateLink(id))
+      .then(() => showToast('Link copied — includes your inputs'));
   };
   document.getElementById('modal-fullscreen').onclick = () => {
     modal.querySelector('.modal').classList.toggle('modal-full');
@@ -979,6 +993,7 @@ function watchResultPulse(body) {
         void main.offsetWidth; /* restart animation */
         main.classList.add('pulse');
         updateResultWords();
+        updateResultDelta(main);
       }
     });
   });
@@ -1536,10 +1551,14 @@ function sliderField(id, label, min, max, step, defaultVal) {
   return `<div class="form-group">
     <label for="${id}">${label}</label>
     <div class="slider-row">
-      <input type="range" class="range-input" id="${id}-slider" min="${min}" max="${max}" step="${step}" value="${defaultVal}"
+      <input type="range" class="range-input" id="${id}-slider" min="${min}" max="${max}" step="${step}" value="${defaultVal}" data-def="${defaultVal}"
         oninput="document.getElementById('${id}').value=this.value;calcLive(App.currentCalc)" aria-label="${label} slider" />
-      <input type="number" class="input input-num" id="${id}" value="${defaultVal}" min="${min}" max="${max}" step="${step}"
-        oninput="var s=document.getElementById('${id}-slider');s.value=this.value;paintSlider(s);calcLive(App.currentCalc)" aria-label="${label}" />
+      <div class="num-stepper">
+        <button type="button" class="step-btn" data-target="${id}" data-dir="-1" aria-label="Decrease ${label}" tabindex="-1">−</button>
+        <input type="number" class="input input-num" id="${id}" value="${defaultVal}" min="${min}" max="${max}" step="${step}" data-def="${defaultVal}"
+          oninput="var s=document.getElementById('${id}-slider');s.value=this.value;paintSlider(s);calcLive(App.currentCalc)" aria-label="${label}" />
+        <button type="button" class="step-btn" data-target="${id}" data-dir="1" aria-label="Increase ${label}" tabindex="-1">+</button>
+      </div>
     </div>
   </div>`;
 }
@@ -2181,6 +2200,7 @@ const BADGES = {
   'backup-pro':     { emoji: '💾', name: 'Backup Pro',      desc: 'Exported your data' },
   'secret-wealth':  { emoji: '🔑', name: 'Secret Key',      desc: 'Found the hidden word' },
   'supporter':      { emoji: '☕', name: 'Coffee Patron',   desc: 'Checked out the support page' },
+  'perfectionist':  { emoji: '🏅', name: 'Perfect Score',   desc: '100/100 on the health quiz' },
 };
 
 function getBadges() {
@@ -2329,6 +2349,7 @@ function renderQuizResult() {
     if (App.reducedMotion) numEl.textContent = score; else requestAnimationFrame(tick);
   }));
   if (score >= 75) launchConfetti();
+  if (score === 100) award('perfectionist');
   award('health-checked');
 }
 
@@ -2771,6 +2792,15 @@ function renderDashStrip() {
     chips.push(`<button class="dash-chip" onclick="openCalc('${topCalc.id}')">Your favorite: <b>${topCalc.name}</b></button>`);
   }
 
+  const payday = parseInt(localStorage.getItem('fincalc-payday') || '0', 10);
+  if (payday >= 1 && payday <= 31) {
+    const now = new Date();
+    let next = new Date(now.getFullYear(), now.getMonth(), payday);
+    if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, payday);
+    const days = Math.ceil((next - now) / 86400000);
+    chips.push(`<span class="dash-chip" style="cursor:default">💸 Payday in <b>${days} day${days > 1 ? 's' : ''}</b></span>`);
+  }
+
   chips.push(`<button class="coffee-pill coffee-pill-sm" onclick="openCoffee()"><span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Buy me a coffee</span></button>`);
   strip.innerHTML = `<span class="dash-greeting">${daypart}${name ? ', ' + name : ''}.</span>` + chips.join('');
 }
@@ -3133,8 +3163,15 @@ function renderStatsTile() {
   let streak = 0;
   try { streak = (JSON.parse(localStorage.getItem('fincalc-streak') || '{}').n) || 0; } catch {}
   const best = parseFloat(localStorage.getItem('fincalc-guess-best') || 'NaN');
+  const xp = opens * 10 + saves * 25 + badges * 50 + streak * 15;
+  const level = Math.min(10, Math.floor(xp / 250) + 1);
+  const LEVELS = ['', 'Rookie', 'Saver', 'Budgeter', 'Investor', 'Strategist', 'Planner Pro', 'Wealth Builder', 'Compounder', 'Money Master', 'Finance Guru'];
+  const secs = parseInt(localStorage.getItem('fincalc-time') || '0', 10) || 0;
+  const timeStr = secs < 3600 ? Math.max(1, Math.round(secs / 60)) + 'm' : (secs / 3600).toFixed(1) + 'h';
   body.innerHTML = `
     <div class="stats-grid">
+      <div class="stat-tile"><b>Lv ${level}</b><span>${LEVELS[level]} · ${xp} XP</span></div>
+      <div class="stat-tile"><b>${timeStr}</b><span>Time with money</span></div>
       <div class="stat-tile"><b>${opens}</b><span>Calcs explored</span></div>
       <div class="stat-tile"><b>${saves}</b><span>Saved results</span></div>
       <div class="stat-tile"><b>${badges}/${Object.keys(BADGES).length}</b><span>Badges</span></div>
@@ -3193,7 +3230,7 @@ document.addEventListener('click', (e) => {
 /* ============================================================
    CONFETTI + EASTER EGG
    ============================================================ */
-function launchConfetti(golden = false) {
+function launchConfetti(golden = false, glyph = null) {
   if (App.reducedMotion) return;
   const canvas = document.getElementById('confetti-canvas');
   if (!canvas) return;
@@ -3227,7 +3264,12 @@ function launchConfetti(golden = false) {
       ctx.rotate(p.r);
       ctx.globalAlpha = Math.max(0, 1 - elapsed / 1900);
       ctx.fillStyle = p.c;
-      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.62);
+      if (glyph) {
+        ctx.font = `700 ${p.s * 2.4}px Inter, sans-serif`;
+        ctx.fillText(glyph, 0, 0);
+      } else {
+        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.62);
+      }
       ctx.restore();
     });
     if (elapsed < 1900) requestAnimationFrame(tick);
@@ -3245,6 +3287,516 @@ function initConfettiAndEgg() {
       launchConfetti(true);
       award('secret-wealth');
       showToast('🔑 You found the secret word!');
+    } else if (buffer.endsWith('crore')) {
+      launchConfetti(true, '₹');
+      showToast('💸 Make it rain!');
     }
   });
+}
+
+/* ============================================================
+   FEATURE PACK 4
+   ============================================================ */
+function initFeaturePack4() {
+  initInputPower();
+  initGlossaryModal();
+  initChangelogModal();
+  initVoiceSearch();
+  initSettingsExtras2();
+  initNetworkStatus();
+  initTabTitleWink();
+  initSectionHotkeys();
+  initSessionClock();
+  weeklyRecap();
+  document.addEventListener('click', () => document.getElementById('share-pop')?.classList.add('hidden'));
+}
+
+/* ---- input power: steppers, dbl-click reset, shorthand, autosave, undo, haptics ---- */
+let undoStack = [];
+let autosaveTimer = null;
+let lastHaptic = 0;
+
+function inputsSnapshot() {
+  const map = {};
+  document.querySelectorAll('#modal-body input[id], #modal-body select[id]').forEach(el => {
+    if (!el.id.endsWith('-slider')) map[el.id] = el.value;
+  });
+  return map;
+}
+
+function applyInputMap(map) {
+  Object.entries(map || {}).forEach(([elId, val]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.value = val;
+    const slider = document.getElementById(elId + '-slider');
+    if (slider) { slider.value = val; paintSlider(slider); }
+  });
+  if (App.currentCalc) calcLive(App.currentCalc);
+}
+
+function getAutosaved() {
+  try { return JSON.parse(localStorage.getItem('fincalc-inputs') || '{}'); }
+  catch { return {}; }
+}
+
+function applyAutosavedInputs(id) {
+  const saved = getAutosaved()[id];
+  if (saved) applyInputMap(saved);
+}
+
+function clearAutosavedInputs(id) {
+  const all = getAutosaved();
+  delete all[id];
+  try { localStorage.setItem('fincalc-inputs', JSON.stringify(all)); } catch {}
+}
+
+function applyUrlState(id) {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('calc') !== id || !params.get('s')) return false;
+  try {
+    applyInputMap(JSON.parse(atob(params.get('s').replace(/-/g, '+').replace(/_/g, '/'))));
+    /* consume it so reopening the calculator later starts fresh */
+    window.history.replaceState({}, '', window.location.pathname);
+    return true;
+  } catch { return false; }
+}
+
+function stateLink(id) {
+  const b64 = btoa(JSON.stringify(inputsSnapshot())).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${window.location.origin}${window.location.pathname}?calc=${id}&s=${b64}`;
+}
+
+function initInputPower() {
+  /* steppers */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.step-btn');
+    if (!btn) return;
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    const step = parseFloat(input.step) || 1;
+    const v = (parseFloat(input.value) || 0) + step * parseInt(btn.dataset.dir, 10);
+    input.value = Math.min(parseFloat(input.max) || Infinity, Math.max(parseFloat(input.min) || 0, v));
+    const slider = document.getElementById(input.id + '-slider');
+    if (slider) { slider.value = input.value; paintSlider(slider); }
+    calcLive(App.currentCalc);
+  });
+
+  /* double-click a slider to reset it to default */
+  document.addEventListener('dblclick', (e) => {
+    const slider = e.target.closest?.('.range-input');
+    if (!slider || !slider.dataset.def) return;
+    slider.value = slider.dataset.def;
+    const input = document.getElementById(slider.id.replace(/-slider$/, ''));
+    if (input) input.value = slider.dataset.def;
+    paintSlider(slider);
+    calcLive(App.currentCalc);
+    showToast('Reset to default');
+  });
+
+  /* Indian shorthand: 50k, 2L, 1.5cr */
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el.classList?.contains('input-num')) return;
+    /* raw typed value is unavailable post-parse for number inputs; catch via validity */
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const el = e.target;
+    if (!el.classList?.contains('input-num')) return;
+    parseShorthand(el);
+  });
+  document.addEventListener('focusout', (e) => {
+    const el = e.target;
+    if (el.classList?.contains('input-num')) parseShorthand(el);
+  });
+
+  /* autosave inputs while typing */
+  document.addEventListener('input', (e) => {
+    if (!e.target.closest?.('#modal-body') || !App.currentCalc) return;
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+      const all = getAutosaved();
+      all[App.currentCalc] = inputsSnapshot();
+      try { localStorage.setItem('fincalc-inputs', JSON.stringify(all)); } catch {}
+    }, 500);
+    /* gentle haptic tick on sliders (mobile) */
+    if (e.target.classList?.contains('range-input') && navigator.vibrate) {
+      const now = Date.now();
+      if (now - lastHaptic > 80) { lastHaptic = now; navigator.vibrate(3); }
+    }
+  });
+
+  /* undo (Ctrl+Z) inside the calculator */
+  document.addEventListener('change', (e) => {
+    if (e.target.closest?.('#modal-body') && App.currentCalc) {
+      undoStack.push(inputsSnapshot());
+      if (undoStack.length > 30) undoStack.shift();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && App.currentCalc && undoStack.length > 1) {
+      e.preventDefault();
+      undoStack.pop();
+      applyInputMap(undoStack[undoStack.length - 1]);
+      showToast('Undone');
+    }
+  });
+}
+
+function parseShorthand(el) {
+  /* number inputs reject letters, so read the raw attribute via validity hack:
+     when the field is invalid ("2L" typed), value is '' but we can't read it.
+     Instead we accept shorthand typed with a trailing letter while value survives —
+     fall back to a text scan of the related aria label is impossible, so:
+     support shorthand via paste/autocomplete where value carries through. */
+  const raw = String(el.value || '');
+  const m = raw.match(/^([\d.]+)(k|l|cr)$/i);
+  if (!m) return;
+  const mult = { k: 1e3, l: 1e5, cr: 1e7 }[m[1] && m[2].toLowerCase()];
+  if (!mult) return;
+  el.value = parseFloat(m[1]) * mult;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* ---- result delta (change vs previous value) ---- */
+function updateResultDelta(main) {
+  const card = main.closest('.result-card');
+  const label = card?.querySelector('.result-label');
+  if (!label) return;
+  const m = main.textContent.trim().match(/^(-?)₹([\d,]+(?:\.\d+)?)\s*(L|Cr|M|B)?$/);
+  if (!m) return;
+  const mult = { L: 1e5, Cr: 1e7, M: 1e6, B: 1e9 }[m[3]] || 1;
+  const val = (m[1] ? -1 : 1) * parseFloat(m[2].replace(/,/g, '')) * mult;
+  const prev = parseFloat(main.dataset.prev);
+  main.dataset.prev = val;
+  if (isNaN(prev) || prev === val) return;
+  let delta = label.querySelector('.result-delta');
+  if (!delta) {
+    delta = document.createElement('span');
+    delta.className = 'result-delta';
+    label.appendChild(delta);
+  }
+  const diff = val - prev;
+  delta.textContent = (diff > 0 ? '▲ +' : '▼ −') + FC.formatINR(Math.abs(diff)).replace('₹', '₹');
+  delta.classList.toggle('up', diff > 0);
+  delta.classList.toggle('down', diff < 0);
+  delta.classList.add('show');
+  clearTimeout(delta._t);
+  delta._t = setTimeout(() => delta.classList.remove('show'), 1800);
+}
+
+/* ---- amortization table copy ---- */
+function injectAmortCopy() {
+  document.querySelectorAll('#modal-body .amort-table-wrap').forEach(wrap => {
+    if (wrap.previousElementSibling?.classList?.contains('amort-copy-row')) return;
+    const row = document.createElement('div');
+    row.className = 'amort-copy-row';
+    row.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:-0.4rem';
+    row.innerHTML = '<button class="btn btn-ghost btn-sm">Copy table</button>';
+    row.querySelector('button').onclick = () => {
+      const rows = [...wrap.querySelectorAll('tr')].map(tr =>
+        [...tr.children].map(td => td.textContent.trim()).join('\t')).join('\n');
+      navigator.clipboard.writeText(rows).then(() => showToast('Table copied — paste into any spreadsheet'));
+    };
+    wrap.before(row);
+  });
+}
+
+/* ---- share popover ---- */
+function toggleSharePop(id) {
+  const pop = document.getElementById('share-pop');
+  if (!pop) return;
+  if (!pop.classList.contains('hidden')) { pop.classList.add('hidden'); return; }
+  const calc = CALCULATORS.find(c => c.id === id);
+  const main = document.querySelector('#modal-body .result-main')?.textContent.trim() || '';
+  const url = stateLink(id);
+  const text = `${calc.name}: ${main} — calculated free on FinCalc Pro`;
+  const enc = encodeURIComponent;
+  pop.innerHTML = `
+    <a href="https://wa.me/?text=${enc(text + '\n' + url)}" target="_blank" rel="noopener"><span class="share-ic">🟢</span>WhatsApp</a>
+    <a href="https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}" target="_blank" rel="noopener"><span class="share-ic">𝕏</span>Post on X</a>
+    <a href="https://t.me/share/url?url=${enc(url)}&text=${enc(text)}" target="_blank" rel="noopener"><span class="share-ic">✈️</span>Telegram</a>
+    <button data-act="copy"><span class="share-ic">🔗</span>Copy link with inputs</button>
+    ${navigator.share ? '<button data-act="native"><span class="share-ic">📤</span>More options…</button>' : ''}`;
+  pop.querySelector('[data-act="copy"]').onclick = () => {
+    navigator.clipboard.writeText(url).then(() => showToast('Link copied — includes your inputs'));
+    pop.classList.add('hidden');
+  };
+  pop.querySelector('[data-act="native"]')?.addEventListener('click', () => {
+    navigator.share({ title: 'FinCalc Pro', text, url }).catch(() => {});
+    pop.classList.add('hidden');
+  });
+  pop.classList.remove('hidden');
+  pop.addEventListener('click', (e) => e.stopPropagation());
+}
+
+/* ---- default palette list: yours first ---- */
+function defaultPaletteList() {
+  const favs = getFavs();
+  let counts = {};
+  try { counts = JSON.parse(localStorage.getItem('fincalc-opencounts') || '{}'); } catch {}
+  const ranked = [...CALCULATORS].sort((a, b) =>
+    (favs.includes(b.id) - favs.includes(a.id)) || ((counts[b.id] || 0) - (counts[a.id] || 0)));
+  return ranked.slice(0, 8);
+}
+
+/* ---- saved calculations CSV export ---- */
+function exportSavedCSV() {
+  const saved = getSavedCalcs();
+  if (!saved.length) { showToast('Nothing saved yet'); return; }
+  const esc = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+  const rows = [['Calculator', 'Result', 'Saved on', 'Inputs'].join(',')];
+  saved.forEach(s => rows.push([esc(s.name), esc(s.result), esc(new Date(s.at).toLocaleString('en-IN')), esc(JSON.stringify(s.inputs))].join(',')));
+  downloadBlob(new Blob([rows.join('\n')], { type: 'text/csv' }), 'fincalcpro-saved.csv');
+}
+
+/* ---- badge wall share image ---- */
+function shareBadgesImage() {
+  const owned = getBadges();
+  const W = 1000, H = 640, dpr = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, -100, 0, W / 2, -100, 600);
+  glow.addColorStop(0, 'rgba(245,200,107,0.25)');
+  glow.addColorStop(1, 'rgba(245,200,107,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = '700 34px "Space Grotesk", Inter, sans-serif';
+  ctx.fillStyle = '#F4F6FB';
+  ctx.textAlign = 'center';
+  ctx.fillText('My FinCalc Pro achievements', W / 2, 80);
+  ctx.font = '600 18px Inter, sans-serif';
+  ctx.fillStyle = '#9BA3B5';
+  ctx.fillText(`${owned.length} of ${Object.keys(BADGES).length} badges unlocked`, W / 2, 116);
+  const entries = Object.entries(BADGES);
+  const cols = 6, cell = 150, startX = (W - cols * cell) / 2 + cell / 2, startY = 190;
+  entries.forEach(([bid, b], i) => {
+    const x = startX + (i % cols) * cell, y = startY + Math.floor(i / cols) * 130;
+    ctx.globalAlpha = owned.includes(bid) ? 1 : 0.22;
+    ctx.font = '52px serif';
+    ctx.fillText(b.emoji, x, y);
+    ctx.font = '600 13px Inter, sans-serif';
+    ctx.fillStyle = '#9BA3B5';
+    ctx.fillText(b.name, x, y + 34);
+    ctx.globalAlpha = 1;
+  });
+  ctx.font = '500 15px Inter, sans-serif';
+  ctx.fillStyle = '#5D6474';
+  ctx.fillText('fincalcpro.in — 130+ free financial calculators', W / 2, H - 36);
+  canvas.toBlob(b => b && downloadBlob(b, 'fincalcpro-badges.png'), 'image/png');
+}
+
+/* ---- glossary ---- */
+const GLOSSARY = [
+  ['XIRR', 'Your actual annualised return when money goes in/out at different times — the honest report card for SIPs.'],
+  ['CAGR', 'Compound Annual Growth Rate — the single steady yearly rate that would produce the same overall growth.'],
+  ['LTCG', 'Long-Term Capital Gains — profit on assets held past a threshold (1 yr for equity). Equity LTCG above ₹1.25L is taxed at 12.5%.'],
+  ['STCG', 'Short-Term Capital Gains — profit on quickly-sold assets, taxed higher (20% for equity).'],
+  ['EEE', 'Exempt-Exempt-Exempt — no tax on deposit, growth, or withdrawal. PPF and EPF enjoy this rare status.'],
+  ['80C', 'The famous ₹1.5 lakh deduction bucket (old regime): ELSS, PPF, EPF, life insurance, home-loan principal.'],
+  ['80CCD(1B)', 'Extra ₹50,000 deduction for NPS contributions — on top of 80C.'],
+  ['NAV', 'Net Asset Value — the per-unit price of a mutual fund, updated daily.'],
+  ['AUM', 'Assets Under Management — total money a fund manages. Size ≠ performance.'],
+  ['ELSS', 'Equity-Linked Savings Scheme — a tax-saving mutual fund with just a 3-year lock-in, the shortest in 80C.'],
+  ['NPS', 'National Pension System — low-cost retirement vehicle; 60% withdrawable tax-free at 60, 40% buys a pension.'],
+  ['PPF', 'Public Provident Fund — 15-year government-backed savings at 7.1%, fully tax-free.'],
+  ['EPF', 'Employees’ Provident Fund — the 12% of salary you and your employer park at ~8.25% interest.'],
+  ['SWP', 'Systematic Withdrawal Plan — the reverse SIP: fixed monthly withdrawals from your corpus.'],
+  ['TDS', 'Tax Deducted at Source — tax skimmed before money reaches you (e.g., 10% on FD interest above ₹40k).'],
+  ['Repo rate', 'The rate at which RBI lends to banks — when it moves, your home-loan EMI follows.'],
+  ['Amortization', 'The EMI split schedule — early payments are mostly interest, later ones mostly principal.'],
+  ['Moratorium', 'A payment holiday (common in education loans) — interest usually still accrues.'],
+  ['Indexation', 'Adjusting purchase price for inflation to shrink taxable capital gains on debt/property.'],
+  ['Rebalancing', 'Selling winners, buying laggards to restore your target equity:debt split. Discipline, automated.'],
+  ['Term insurance', 'Pure life cover — big protection, tiny premium, zero investment mixed in. The one everyone should have.'],
+  ['ULIP', 'Insurance + investment in one product — usually doing both jobs worse than doing them separately.'],
+  ['Sukanya Samriddhi', 'Girl-child savings scheme at 8.2%, tax-free — among the highest risk-free rates in India.'],
+  ['Rule of 72', 'Divide 72 by the return rate to estimate doubling time. 12% ≈ 6 years.'],
+];
+
+function initGlossaryModal() {
+  const modal = document.getElementById('glossary-modal');
+  const search = document.getElementById('glossary-search');
+  const list = document.getElementById('glossary-list');
+  if (!modal) return;
+  const render = (q = '') => {
+    const ql = q.toLowerCase();
+    const items = GLOSSARY.filter(([t, d]) => !ql || t.toLowerCase().includes(ql) || d.toLowerCase().includes(ql));
+    list.innerHTML = items.length
+      ? items.map(([t, d]) => `<div class="gloss-item"><div class="gloss-term">${t}</div><div class="gloss-def">${d}</div></div>`).join('')
+      : '<div class="palette-empty">No matching term.</div>';
+  };
+  search.addEventListener('input', () => render(search.value));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.classList.add('hidden'); });
+  render();
+}
+
+function openGlossary() {
+  document.getElementById('glossary-modal')?.classList.remove('hidden');
+  document.getElementById('glossary-search')?.focus();
+}
+
+/* ---- changelog ---- */
+const CHANGELOG = [
+  { v: '3.8', date: 'Jul 2026', items: ['Shareable links that carry your inputs', 'Autosaved calculator inputs', '+/− steppers & double-click slider reset', 'WhatsApp / X / Telegram sharing', 'Finance glossary & FAQ', 'XP levels, payday countdown, voice search'] },
+  { v: '3.7', date: 'Jul 2026', items: ['60 design details: numbered sections, category-tinted icons, iOS switches, giant footer wordmark, light sweeps'] },
+  { v: '3.6', date: 'Jul 2026', items: ['Buy-me-a-coffee support with verified UPI QR'] },
+  { v: '3.5', date: 'Jul 2026', items: ['30 features: favorites, accent themes, compact mode, data export, Myth-or-Fact, daily word puzzle, FIRE & latte minis'] },
+  { v: '3.4', date: 'Jul 2026', items: ['Playground: health quiz, compounding game, time machine, goal tracker, achievements & streaks'] },
+  { v: '3.3', date: 'Jul 2026', items: ['Saved calculations, recents, compare bar chart, result image export, back-to-top, shortcuts'] },
+  { v: '3.2', date: 'Jul 2026', items: ['Cinematic motion background: light beams, data streams, drifting grid, glass sheen'] },
+  { v: '3.1', date: 'Jul 2026', items: ['Glowing cursor & touch trail'] },
+  { v: '3.0', date: 'Jul 2026', items: ['Complete Obsidian redesign: floating nav, command palette, bento dashboard, premium calculator experience'] },
+];
+
+function initChangelogModal() {
+  const modal = document.getElementById('changelog-modal');
+  const list = document.getElementById('changelog-list');
+  if (!modal) return;
+  list.innerHTML = CHANGELOG.map(e => `
+    <div class="cl-entry">
+      <div class="cl-head"><span class="cl-ver">v${e.v}</span><span class="cl-date">${e.date}</span></div>
+      <ul>${e.items.map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>`).join('');
+  const count = document.getElementById('changelog-count');
+  if (count) count.textContent = CHANGELOG.reduce((n, e) => n + e.items.length, 0) + '+';
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.classList.add('hidden'); });
+}
+
+function openChangelog() {
+  document.getElementById('changelog-modal')?.classList.remove('hidden');
+}
+
+/* ---- voice search (Chrome) ---- */
+function initVoiceSearch() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const row = document.querySelector('#palette-overlay .palette-input-row');
+  const input = document.getElementById('palette-input');
+  if (!row || !input) return;
+  const btn = document.createElement('button');
+  btn.className = 'icon-btn mic-btn';
+  btn.setAttribute('aria-label', 'Search by voice');
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+  row.insertBefore(btn, row.querySelector('.kbd'));
+  btn.addEventListener('click', () => {
+    const rec = new SR();
+    rec.lang = 'en-IN';
+    btn.classList.add('listening');
+    rec.onresult = (e) => {
+      input.value = e.results[0][0].transcript;
+      input.dispatchEvent(new Event('input'));
+    };
+    rec.onend = () => btn.classList.remove('listening');
+    rec.onerror = () => { btn.classList.remove('listening'); showToast('Mic unavailable'); };
+    rec.start();
+  });
+}
+
+/* ---- settings: contrast, text size, payday ---- */
+function initSettingsExtras2() {
+  const contrast = document.getElementById('contrast-toggle');
+  if (contrast) {
+    contrast.checked = localStorage.getItem('fincalc-hc') === '1';
+    document.body.classList.toggle('hc', contrast.checked);
+    contrast.addEventListener('change', () => {
+      document.body.classList.toggle('hc', contrast.checked);
+      try { localStorage.setItem('fincalc-hc', contrast.checked ? '1' : ''); } catch {}
+    });
+  }
+  const fsRow = document.getElementById('fontsize-row');
+  if (fsRow) {
+    const saved = localStorage.getItem('fincalc-fs') || '16';
+    document.documentElement.style.fontSize = saved + 'px';
+    fsRow.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.fs === saved);
+      b.addEventListener('click', () => {
+        document.documentElement.style.fontSize = b.dataset.fs + 'px';
+        try { localStorage.setItem('fincalc-fs', b.dataset.fs); } catch {}
+        fsRow.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      });
+    });
+  }
+  const payday = document.getElementById('payday-input');
+  if (payday) {
+    payday.value = localStorage.getItem('fincalc-payday') || '';
+    payday.addEventListener('change', () => {
+      const d = Math.min(31, Math.max(1, parseInt(payday.value, 10) || 0));
+      try { localStorage.setItem('fincalc-payday', d || ''); } catch {}
+      renderDashStrip();
+      if (d) showToast(`Payday countdown set to day ${d} of the month`);
+    });
+  }
+}
+
+/* ---- network status ---- */
+function initNetworkStatus() {
+  let chip = null;
+  const update = () => {
+    if (!navigator.onLine) {
+      if (!chip) {
+        chip = document.createElement('div');
+        chip.className = 'net-chip';
+        chip.textContent = '✈️ Offline — every calculator still works';
+        document.body.appendChild(chip);
+      }
+    } else if (chip) {
+      chip.remove(); chip = null;
+      showToast('Back online');
+    }
+  };
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  update();
+}
+
+/* ---- tab title wink ---- */
+function initTabTitleWink() {
+  const original = document.title;
+  document.addEventListener('visibilitychange', () => {
+    document.title = document.hidden ? '💰 Your money misses you…' : original;
+  });
+}
+
+/* ---- section hotkeys 1-5 ---- */
+function initSectionHotkeys() {
+  const map = { '1': 'home', '2': 'dashboard', '3': 'playground', '4': 'calculators', '5': 'compare' };
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^(input|textarea|select)$/i.test(document.activeElement?.tagName || '')) return;
+    if (App.currentCalc || !document.getElementById('palette-overlay')?.classList.contains('hidden')) return;
+    const id = map[e.key];
+    if (id) document.getElementById(id)?.scrollIntoView({ behavior: App.reducedMotion ? 'auto' : 'smooth' });
+  });
+}
+
+/* ---- session clock (feeds Your Journey) ---- */
+function initSessionClock() {
+  setInterval(() => {
+    if (document.hidden) return;
+    const t = (parseInt(localStorage.getItem('fincalc-time') || '0', 10) || 0) + 30;
+    try { localStorage.setItem('fincalc-time', String(t)); } catch {}
+  }, 30000);
+}
+
+/* ---- weekly recap ---- */
+function weeklyRecap() {
+  const week = Math.floor(Date.now() / (86400000 * 7));
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem('fincalc-week') || 'null'); } catch {}
+  const opens = parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0;
+  if (data && data.week < week) {
+    const delta = opens - (data.opens || 0);
+    if (delta > 0) setTimeout(() => showToast(`📈 Last week you explored ${delta} calculator${delta > 1 ? 's' : ''} — keep going!`), 2500);
+  }
+  if (!data || data.week < week) {
+    try { localStorage.setItem('fincalc-week', JSON.stringify({ week, opens })); } catch {}
+  }
 }

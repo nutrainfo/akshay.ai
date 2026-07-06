@@ -186,12 +186,7 @@
       <span class="pill">2026 READY</span>
       India's most trusted financial calculators
     </div>
-    <h1 class="hero-title">Your money,<br><span class="gradient-text">computed to perfection.</span>
-      <svg class="hero-stroke" viewBox="0 0 240 14" aria-hidden="true">
-        <path d="M4 9 C 60 2.5, 130 12.5, 236 5.5" fill="none" stroke="url(#strokeGrad)" stroke-width="4" stroke-linecap="round" pathLength="1"/>
-        <defs><linearGradient id="strokeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3B82F6"/><stop offset="0.55" stop-color="#22D3EE"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs>
-      </svg>
-    </h1>
+    <h1 class="hero-title">Your money,<br><span class="gradient-text">computed to perfection.</span></h1>
     <p class="hero-subtitle">130+ precision-engineered calculators for SIP, EMI, tax and retirement — instant, private, ad-free, and free forever. Everything runs in your browser.</p>
 
     <div class="hero-search" id="hero-search">
@@ -379,7 +374,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Saved Calculations
           </span>
-          <span class="bento-open" title="Stored only in this browser">On this device</span>
+          <button class="btn btn-ghost btn-sm" onclick="exportSavedCSV()" title="Download saved calculations as CSV">CSV ↓</button>
         </div>
         <div class="saved-list" id="saved-list"><!-- populated by JS --></div>
       </div>
@@ -619,6 +614,52 @@
         <div class="play-body" id="fy-body"><!-- JS --></div>
       </div>
 
+      <!-- RBI repo trend -->
+      <div class="bento bento-md glass glass-edge bento-static bento-accent-cyan" aria-label="RBI repo rate trend">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-6 4 3 5-7"/></svg>
+            RBI Repo Rate Journey
+          </span>
+        </div>
+        <div class="play-body">
+          <div class="bento-value" id="repo-now">5.5%</div>
+          <div class="mini-sub">today · from a covid-era low of <b>4.0%</b> to a peak of <b>6.5%</b></div>
+          <canvas class="bento-spark" id="repo-spark" aria-hidden="true"></canvas>
+          <div class="mini-sub" style="margin-top:0.4rem">2021 → 2026 · repo rate drives every loan EMI in India</div>
+        </div>
+      </div>
+
+      <!-- Glossary teaser -->
+      <div class="bento bento-md glass glass-edge bento-static" onclick="openGlossary()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openGlossary()" aria-label="Open the finance glossary">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Jargon, Decoded
+          </span>
+          <span class="bento-open">Open →</span>
+        </div>
+        <div class="play-body">
+          <div class="bento-value" style="font-size:1.6rem">XIRR? LTCG? EEE?</div>
+          <div class="mini-sub">A plain-English glossary of the 24 finance terms everyone pretends to know. Searchable, two-second reads.</div>
+        </div>
+      </div>
+
+      <!-- What's new teaser -->
+      <div class="bento bento-md glass glass-edge bento-static bento-accent-purple" onclick="openChangelog()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openChangelog()" aria-label="See what's new">
+        <div class="bento-head">
+          <span class="bento-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Always Shipping
+          </span>
+          <span class="bento-open">Open →</span>
+        </div>
+        <div class="play-body">
+          <div class="bento-value" style="font-size:1.6rem" id="changelog-count">--</div>
+          <div class="mini-sub">features shipped and counting. See the full changelog of what's new on FinCalc Pro.</div>
+        </div>
+      </div>
+
       <!-- Support card -->
       <div class="bento glass glass-edge bento-static bento-accent-gold coffee-bento" style="grid-column: span 8" aria-label="Support FinCalc Pro">
         <div class="bento-head">
@@ -642,7 +683,10 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg>
             Achievements
           </span>
-          <span class="streak-chip" id="streak-chip"></span>
+          <span style="display:inline-flex;gap:0.5rem;align-items:center">
+            <button class="btn btn-ghost btn-sm" onclick="shareBadgesImage()" title="Download your badge wall as an image">Share ↓</button>
+            <span class="streak-chip" id="streak-chip"></span>
+          </span>
         </div>
         <div class="badge-wall" id="badge-wall"><!-- JS --></div>
       </div>
@@ -761,6 +805,42 @@
   </div>
 </section>
 
+<!-- ===== FAQ ===== -->
+<section id="faq" class="section" aria-labelledby="faq-heading">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Answers</span>
+      <h2 id="faq-heading">Frequently asked questions</h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item glass glass-edge">
+        <summary>Is FinCalc Pro really free? What's the catch?</summary>
+        <p>Completely free, no catch. No ads, no sign-up, no premium tier, no data collection. The site is supported entirely by optional "buy me a coffee" tips from users who find it useful.</p>
+      </details>
+      <details class="faq-item glass glass-edge">
+        <summary>Is my financial data safe here?</summary>
+        <p>Yes — nothing you type ever leaves your device. Every calculation runs in your browser. Saved calculations, goals and preferences live in your browser's local storage, which you can export, import or wipe anytime from Settings.</p>
+      </details>
+      <details class="faq-item glass glass-edge">
+        <summary>How accurate are the calculators?</summary>
+        <p>They use the standard, industry-accepted formulas (compound interest, reducing-balance EMI, slab-wise tax). Results match bank and AMC calculators to the rupee for the same inputs — but real-world returns vary, so treat projections as estimates, not promises.</p>
+      </details>
+      <details class="faq-item glass glass-edge">
+        <summary>Is the tax calculator updated for the new regime?</summary>
+        <p>Yes — the income tax tools follow the Income Tax Act 2025 slabs for FY 2026-27, including the ₹75,000 standard deduction and Section 87A rebate. The dashboard even shows the old-vs-new regime difference at a glance.</p>
+      </details>
+      <details class="faq-item glass glass-edge">
+        <summary>Can I use it offline?</summary>
+        <p>Yes. Tap "Install App" in the header to add FinCalc Pro to your home screen — it works fully offline afterwards, since all the math happens on your device.</p>
+      </details>
+      <details class="faq-item glass glass-edge">
+        <summary>Is this financial advice?</summary>
+        <p>No. FinCalc Pro is an educational tool. It shows you the math, but it doesn't know your life. For decisions involving serious money, consult a SEBI-registered investment advisor.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <!-- ===== LEGAL ===== -->
 <section id="legal" class="section section-alt" aria-labelledby="legal-heading">
   <div class="container">
@@ -814,7 +894,7 @@
       </div>
       <div class="footer-col">
         <h4>Resources</h4>
-        <ul><li><a href="#dashboard">Dashboard</a></li><li><a href="#compare">Compare</a></li></ul>
+        <ul><li><a href="#dashboard">Dashboard</a></li><li><a href="#playground">Playground</a></li><li><a href="#compare">Compare</a></li><li><a href="#faq">FAQ</a></li><li><a href="javascript:void(0)" onclick="openGlossary()">Glossary</a></li><li><a href="javascript:void(0)" onclick="openChangelog()">What's New</a></li></ul>
       </div>
       <div class="footer-col">
         <h4>Legal</h4>
@@ -912,10 +992,13 @@
           PDF
         </button>
         <button class="btn btn-ghost btn-sm" id="modal-export-csv">CSV</button>
+        <div class="share-wrap">
+        <div class="share-pop hidden" id="share-pop"></div>
         <button class="btn btn-ghost btn-sm" id="modal-share">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
           Share
         </button>
+        </div>
         <button class="icon-btn modal-tool coffee-tool" onclick="openCoffee()" aria-label="Buy me a coffee" title="Enjoying this? Buy me a coffee">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
         </button>
@@ -947,6 +1030,29 @@
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
 </button>
 
+<!-- ===== GLOSSARY ===== -->
+<div id="glossary-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-label="Finance glossary">
+  <div class="palette">
+    <div class="palette-input-row">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <input type="text" id="glossary-search" class="palette-input" placeholder="Search 24 terms — try “XIRR”…" autocomplete="off" aria-label="Search glossary" />
+      <span class="kbd">ESC</span>
+    </div>
+    <div class="palette-results glossary-list" id="glossary-list"></div>
+  </div>
+</div>
+
+<!-- ===== WHAT'S NEW ===== -->
+<div id="changelog-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-label="What's new">
+  <div class="palette">
+    <div class="palette-input-row">
+      <strong style="font-family:var(--font-head);font-size:1rem;color:var(--text)">What's new on FinCalc Pro</strong>
+      <span class="kbd" style="margin-left:auto">ESC</span>
+    </div>
+    <div class="palette-results changelog-list" id="changelog-list"></div>
+  </div>
+</div>
+
 <!-- ===== KEYBOARD SHORTCUTS (press ?) ===== -->
 <div id="shortcuts-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
   <div class="palette shortcuts-panel">
@@ -959,6 +1065,8 @@
       <div class="shortcut-row"><span>Navigate search results</span><span><span class="kbd">↑</span> <span class="kbd">↓</span></span></div>
       <div class="shortcut-row"><span>Open selected calculator</span><span><span class="kbd">↵</span></span></div>
       <div class="shortcut-row"><span>Close modal / palette</span><span><span class="kbd">ESC</span></span></div>
+      <div class="shortcut-row"><span>Jump to section</span><span><span class="kbd">1</span> – <span class="kbd">5</span></span></div>
+      <div class="shortcut-row"><span>Undo input change (in calculator)</span><span><span class="kbd">Ctrl</span> <span class="kbd">Z</span></span></div>
       <div class="shortcut-row"><span>Show this panel</span><span><span class="kbd">?</span></span></div>
     </div>
   </div>
@@ -1022,6 +1130,22 @@
   <div class="settings-group">
     <span class="settings-label">Your name (for greetings)</span>
     <input class="input input-sm" id="name-input" maxlength="24" placeholder="Optional" />
+  </div>
+  <label class="toggle-row">
+    <span>High Contrast</span>
+    <input type="checkbox" id="contrast-toggle" role="switch" />
+  </label>
+  <div class="settings-group">
+    <span class="settings-label">Text size</span>
+    <div class="fontsize-row" id="fontsize-row">
+      <button class="btn btn-ghost btn-sm" data-fs="14.5">A−</button>
+      <button class="btn btn-ghost btn-sm" data-fs="16">A</button>
+      <button class="btn btn-ghost btn-sm" data-fs="17.5">A+</button>
+    </div>
+  </div>
+  <div class="settings-group">
+    <span class="settings-label">Salary day (for payday countdown)</span>
+    <input type="number" class="input input-sm" id="payday-input" min="1" max="31" placeholder="e.g. 1" />
   </div>
   <div class="settings-group settings-data-row">
     <button class="btn btn-ghost btn-sm" id="export-data">Export data</button>
