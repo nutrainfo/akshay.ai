@@ -94,6 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initBackToTop();
   initShortcutsPanel();
   initPlayground();
+  initPersonalization();
+  renderDashStrip();
+  initPlayground2();
+  initConfettiAndEgg();
+  const marquee = document.getElementById('rate-marquee-track');
+  if (marquee) marquee.innerHTML += marquee.innerHTML;
 });
 
 /* ============================================================
@@ -311,6 +317,14 @@ function initCursorGlow() {
 function initTheme() {
   const saved = localStorage.getItem('fincalc-theme');
   if (saved === 'light') applyTheme('light', false);
+  else if (!saved) {
+    /* follow the system until the user explicitly picks a theme */
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    if (mq.matches) applyTheme('light', false);
+    mq.addEventListener?.('change', (e) => {
+      if (!localStorage.getItem('fincalc-theme')) applyTheme(e.matches ? 'light' : 'dark', false);
+    });
+  }
   document.getElementById('theme-toggle')?.addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
     applyTheme(next, true);
@@ -525,7 +539,8 @@ function searchCalculators(query, limit = 8) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const scored = CALCULATORS.map(c => {
-    const name = c.name.toLowerCase(), desc = c.desc.toLowerCase(), cat = c.cat.toLowerCase();
+    const name = c.name.toLowerCase(), cat = c.cat.toLowerCase();
+    const desc = (c.desc + ' ' + (SEARCH_ALIASES[c.id] || '')).toLowerCase();
     let score = -1;
     if (name.startsWith(q)) score = 100;
     else if (name.includes(q)) score = 60;
@@ -699,6 +714,13 @@ function initBentoWidgets() {
   const tax = newRegimeTaxEstimate(taxable);
   set('bw-tax-value', fmt(tax));
   set('bw-tax-rate', ((tax / 1500000) * 100).toFixed(1) + '%');
+  const oldTax = oldRegimeTaxEstimate(1500000 - 50000 - 150000); /* std deduction + 80C maxed */
+  const deltaEl = document.getElementById('bw-tax-delta');
+  if (deltaEl) {
+    deltaEl.textContent = oldTax > tax
+      ? `New regime saves ${fmt(oldTax - tax)}/yr vs old (80C maxed)`
+      : `Old regime with 80C would save ${fmt(tax - oldTax)}/yr`;
+  }
   drawMeter('bw-tax-meter', [
     { frac: (1500000 - tax) / 1500000, color: cssVar('--ch-2') },
     { frac: tax / 1500000, color: cssVar('--ch-3') },
@@ -801,29 +823,44 @@ function calcTimeEstimate(id) {
 function renderCalcGrid(filter = 'all', search = '') {
   const grid = document.getElementById('calc-grid');
   if (!grid) return;
-  const filtered = CALCULATORS.filter(c =>
-    (filter === 'all' || c.cat === filter) &&
+  const favs = getFavs();
+  let filtered = CALCULATORS.filter(c =>
+    (filter === 'all' || (filter === 'favorites' ? favs.includes(c.id) : c.cat === filter)) &&
     (c.name.toLowerCase().includes(search) || c.desc.toLowerCase().includes(search))
   );
+  if (filter === 'all' && favs.length) {
+    /* pinned calculators float to the top */
+    filtered = [...filtered].sort((a, b) => favs.includes(b.id) - favs.includes(a.id));
+  }
 
   const countEl = document.getElementById('calc-count');
   if (countEl) {
-    const catLabel = filter === 'all' ? 'across all categories' : `in ${CATEGORY_META[filter]?.label || filter}`;
+    const catLabel = filter === 'all' ? 'across all categories'
+      : filter === 'favorites' ? 'pinned by you'
+      : `in ${CATEGORY_META[filter]?.label || filter}`;
     countEl.textContent = `${filtered.length} calculator${filtered.length === 1 ? '' : 's'} ${catLabel}`;
   }
 
   if (!filtered.length) {
-    grid.innerHTML = `<div class="calc-empty">No calculators match “${search}”. Try a different term or category.</div>`;
+    grid.innerHTML = filter === 'favorites' && !search
+      ? `<div class="calc-empty">No favorites yet — tap the ☆ on any calculator card to pin it here.</div>`
+      : `<div class="calc-empty">No calculators match “${search}”. Try a different term or category.</div>`;
     return;
   }
 
-  grid.innerHTML = filtered.map(c => `
+  grid.innerHTML = filtered.map((c, idx) => `
     <div class="calc-card reveal" role="listitem" tabindex="0" data-cat="${c.cat}"
+         style="transition-delay:${(idx % 8) * 45}ms"
          onclick="openCalc('${c.id}')" onkeydown="if(event.key==='Enter')openCalc('${c.id}')"
          aria-label="${c.name}">
       <div class="calc-card-top">
         <div class="calc-icon">${getIcon(c.id, 22)}</div>
+        <span style="flex:1"></span>
         <span class="calc-tag tag-${c.cat}">${CATEGORY_META[c.cat]?.label || c.cat}</span>
+        <button class="calc-fav ${favs.includes(c.id) ? 'faved' : ''}" onclick="toggleFav(event,'${c.id}')"
+          aria-label="${favs.includes(c.id) ? 'Unpin' : 'Pin'} ${c.name}" title="Pin to favorites">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="${favs.includes(c.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
       </div>
       <h3>${c.name}</h3>
       <p>${c.desc}</p>
@@ -837,6 +874,8 @@ function renderCalcGrid(filter = 'all', search = '') {
     </div>
   `).join('');
   observeReveal();
+  /* clear stagger delays once entrance finishes so hover stays snappy */
+  setTimeout(() => grid.querySelectorAll('.calc-card').forEach(el => { el.style.transitionDelay = ''; }), 1400);
 }
 
 function initCalcFilters() {
@@ -883,12 +922,35 @@ function openCalc(id) {
   document.getElementById('modal-save').onclick = () => saveCalculation(id);
   document.getElementById('modal-image').onclick = () => shareResultImage(id);
   document.getElementById('modal-pdf').onclick = () => window.print();
+  document.getElementById('modal-reset').onclick = () => {
+    body.innerHTML = buildCalcUI(id);
+    paintAllSliders(body);
+    calcLive(id);
+    watchResultPulse(body);
+    showToast('Inputs reset to defaults');
+  };
+  document.getElementById('modal-link').onclick = () => {
+    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?calc=${id}`)
+      .then(() => showToast('Direct link copied'));
+  };
+  document.getElementById('modal-fullscreen').onclick = () => {
+    modal.querySelector('.modal').classList.toggle('modal-full');
+  };
+  const order = CALCULATORS.map(c => c.id);
+  const at = order.indexOf(id);
+  document.getElementById('modal-prev').onclick = () => openCalc(order[(at - 1 + order.length) % order.length]);
+  document.getElementById('modal-next').onclick = () => openCalc(order[(at + 1) % order.length]);
+  updateResultWords();
   trackRecent(id);
   try {
     const opened = (parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0) + 1;
     localStorage.setItem('fincalc-opens', String(opened));
     if (opened >= 5) award('explorer');
+    const counts = JSON.parse(localStorage.getItem('fincalc-opencounts') || '{}');
+    counts[id] = (counts[id] || 0) + 1;
+    localStorage.setItem('fincalc-opencounts', JSON.stringify(counts));
   } catch {}
+  renderStatsTile?.();
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', modalEscHandler);
 }
@@ -916,6 +978,7 @@ function watchResultPulse(body) {
         main.classList.remove('pulse');
         void main.offsetWidth; /* restart animation */
         main.classList.add('pulse');
+        updateResultWords();
       }
     });
   });
@@ -2111,6 +2174,12 @@ const BADGES = {
   'theme-switcher': { emoji: '🌗', name: 'Day Trader',      desc: 'Switched the theme' },
   'streak-3':       { emoji: '🔥', name: 'Regular',         desc: '3-day visit streak' },
   'night-owl':      { emoji: '🦉', name: 'Night Owl',       desc: 'Planning finances after 10pm' },
+  'curator':        { emoji: '⭐', name: 'Curator',         desc: 'Pinned 3 favorites' },
+  'myth-master':    { emoji: '🧠', name: 'Myth Buster',     desc: '5 myths busted correctly' },
+  'word-wizard':    { emoji: '🔤', name: 'Word Wizard',     desc: 'Solved the money word' },
+  'personalized':   { emoji: '🎭', name: 'Regular Face',    desc: 'Told us your name' },
+  'backup-pro':     { emoji: '💾', name: 'Backup Pro',      desc: 'Exported your data' },
+  'secret-wealth':  { emoji: '🔑', name: 'Secret Key',      desc: 'Found the hidden word' },
 };
 
 function getBadges() {
@@ -2126,6 +2195,7 @@ function award(id) {
   try { localStorage.setItem('fincalc-badges', JSON.stringify(owned)); } catch {}
   showToast(`${BADGES[id].emoji} Achievement unlocked: ${BADGES[id].name}`);
   renderBadges();
+  renderStatsTile?.();
 }
 
 function renderBadges() {
@@ -2257,6 +2327,7 @@ function renderQuizResult() {
     };
     if (App.reducedMotion) numEl.textContent = score; else requestAnimationFrame(tick);
   }));
+  if (score >= 75) launchConfetti();
   award('health-checked');
 }
 
@@ -2515,5 +2586,642 @@ function initSurprise() {
     const c = CALCULATORS[Math.floor(Math.random() * CALCULATORS.length)];
     award('random-roller');
     openCalc(c.id);
+  });
+}
+
+/* ============================================================
+   FEATURE PACK 3 — favorites, personalization, games & minis
+   ============================================================ */
+
+/* ---- Search aliases: colloquial terms people actually type ---- */
+const SEARCH_ALIASES = {
+  'home-loan': 'mortgage housing emi property',
+  'retirement': 'fire early retire pension corpus',
+  'sip': 'mutual fund monthly invest systematic',
+  'lumpsum': 'one time invest mutual fund',
+  'fd': 'fixed deposit bank interest term deposit',
+  'rd': 'recurring deposit monthly bank',
+  'nps': 'pension national scheme retirement tier',
+  'ppf': 'public provident fund tax free',
+  'income-tax': 'salary itr slab regime',
+  'new-tax-regime': 'salary itr slab 2025 regime',
+  'capital-gains': 'ltcg stcg shares equity property sale',
+  'emergency-fund': 'rainy day safety buffer',
+  'term-insurance': 'life cover death benefit',
+  'debt-payoff': 'credit card snowball avalanche loan free',
+  'net-worth': 'assets liabilities wealth total',
+  'inflation-impact': 'price rise value erosion cpi',
+};
+
+/* ---- Favorites ---- */
+function getFavs() {
+  try { return JSON.parse(localStorage.getItem('fincalc-favs') || '[]'); }
+  catch { return []; }
+}
+
+function toggleFav(event, id) {
+  event.stopPropagation();
+  let favs = getFavs();
+  if (favs.includes(id)) favs = favs.filter(f => f !== id);
+  else {
+    favs.push(id);
+    showToast('Pinned to favorites');
+  }
+  try { localStorage.setItem('fincalc-favs', JSON.stringify(favs)); } catch {}
+  if (favs.length >= 3) award('curator');
+  const f = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+  const q = document.getElementById('calc-search')?.value.toLowerCase() || '';
+  renderCalcGrid(f, q);
+}
+
+/* ---- Personalization: name, accent, density, number format, backup ---- */
+function initPersonalization() {
+  /* name */
+  const nameInput = document.getElementById('name-input');
+  if (nameInput) {
+    nameInput.value = localStorage.getItem('fincalc-name') || '';
+    nameInput.addEventListener('change', () => {
+      const v = nameInput.value.trim().slice(0, 24);
+      try { localStorage.setItem('fincalc-name', v); } catch {}
+      if (v) award('personalized');
+      renderDashStrip();
+      showToast(v ? `Hi ${v}! Greeting updated` : 'Greeting reset');
+    });
+  }
+
+  /* accent */
+  const savedAccent = localStorage.getItem('fincalc-accent') || '';
+  if (savedAccent) document.documentElement.dataset.accent = savedAccent;
+  document.querySelectorAll('.accent-swatch').forEach(sw => {
+    sw.classList.toggle('active', sw.dataset.accent === savedAccent);
+    sw.addEventListener('click', () => {
+      const a = sw.dataset.accent;
+      if (a) document.documentElement.dataset.accent = a;
+      else delete document.documentElement.dataset.accent;
+      try { localStorage.setItem('fincalc-accent', a); } catch {}
+      document.querySelectorAll('.accent-swatch').forEach(x => x.classList.toggle('active', x === sw));
+    });
+  });
+
+  /* density */
+  const density = document.getElementById('density-toggle');
+  if (density) {
+    density.checked = localStorage.getItem('fincalc-density') === 'compact';
+    document.body.classList.toggle('compact', density.checked);
+    density.addEventListener('change', () => {
+      document.body.classList.toggle('compact', density.checked);
+      try { localStorage.setItem('fincalc-density', density.checked ? 'compact' : ''); } catch {}
+    });
+  }
+
+  /* number format */
+  const numfmt = document.getElementById('numfmt-select');
+  const mode = localStorage.getItem('fincalc-numfmt') || 'in';
+  if (numfmt) {
+    numfmt.value = mode;
+    numfmt.addEventListener('change', () => {
+      try { localStorage.setItem('fincalc-numfmt', numfmt.value); } catch {}
+      applyNumberFormat(numfmt.value);
+      refreshComputedWidgets();
+      showToast(numfmt.value === 'intl' ? 'Showing international units (M/B)' : 'Showing Indian units (L/Cr)');
+    });
+  }
+  applyNumberFormat(mode);
+  if (mode !== 'in') refreshComputedWidgets();
+
+  /* export / import */
+  document.getElementById('export-data')?.addEventListener('click', exportMyData);
+  const importFile = document.getElementById('import-file');
+  document.getElementById('import-data')?.addEventListener('click', () => importFile?.click());
+  importFile?.addEventListener('change', () => {
+    const file = importFile.files?.[0];
+    if (!file) return;
+    file.text().then(text => {
+      const data = JSON.parse(text);
+      if (!data || typeof data !== 'object' || !Object.keys(data).some(k => k.startsWith('fincalc-'))) {
+        showToast('Not a FinCalc Pro backup file');
+        return;
+      }
+      Object.entries(data).forEach(([k, v]) => {
+        if (k.startsWith('fincalc-') || k === 'cookieConsent') localStorage.setItem(k, v);
+      });
+      showToast('Data restored — reloading…');
+      setTimeout(() => window.location.reload(), 800);
+    }).catch(() => showToast('Could not read that file'));
+  });
+}
+
+const _fmtINR = FC.formatINR;
+function applyNumberFormat(mode) {
+  FC.formatINR = mode === 'intl'
+    ? (amount) => {
+        if (!isFinite(amount)) return '∞';
+        const abs = Math.abs(amount);
+        const sign = amount < 0 ? '-' : '';
+        if (abs >= 1e9) return sign + '₹' + (abs / 1e9).toFixed(2) + ' B';
+        if (abs >= 1e6) return sign + '₹' + (abs / 1e6).toFixed(2) + ' M';
+        return sign + '₹' + abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      }
+    : _fmtINR;
+}
+
+function refreshComputedWidgets() {
+  initQuickWidgets();
+  initBentoWidgets();
+  if (App.currentCalc) calcLive(App.currentCalc);
+}
+
+function exportMyData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('fincalc-')) data[k] = localStorage.getItem(k);
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, 'fincalcpro-backup.json');
+  award('backup-pro');
+}
+
+/* ---- Dashboard strip: greeting · continue · pick of the day · popular ---- */
+function renderDashStrip() {
+  const strip = document.getElementById('dash-strip');
+  if (!strip) return;
+  const name = localStorage.getItem('fincalc-name') || '';
+  const h = new Date().getHours();
+  const daypart = h < 5 ? 'Burning the midnight oil' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const chips = [];
+
+  let recent = [];
+  try { recent = JSON.parse(localStorage.getItem('fincalc-recent') || '[]'); } catch {}
+  const lastCalc = CALCULATORS.find(c => c.id === recent[0]);
+  if (lastCalc) {
+    chips.push(`<button class="dash-chip" onclick="openCalc('${lastCalc.id}')">Continue: <b>${lastCalc.name}</b> →</button>`);
+  }
+
+  const day = Math.floor(Date.now() / 86400000);
+  const pick = CALCULATORS[day % CALCULATORS.length];
+  chips.push(`<button class="dash-chip" onclick="openCalc('${pick.id}')"><span class="dash-chip-tag">TODAY'S PICK</span> <b>${pick.name}</b></button>`);
+
+  let counts = {};
+  try { counts = JSON.parse(localStorage.getItem('fincalc-opencounts') || '{}'); } catch {}
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const topCalc = top && top[1] >= 2 && top[0] !== recent[0] ? CALCULATORS.find(c => c.id === top[0]) : null;
+  if (topCalc) {
+    chips.push(`<button class="dash-chip" onclick="openCalc('${topCalc.id}')">Your favorite: <b>${topCalc.name}</b></button>`);
+  }
+
+  strip.innerHTML = `<span class="dash-greeting">${daypart}${name ? ', ' + name : ''}.</span>` + chips.join('');
+}
+
+/* ---- Amount in words (Indian system) ---- */
+const WORD_ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const WORD_TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+function twoDigitWords(n) {
+  if (n < 20) return WORD_ONES[n];
+  return WORD_TENS[Math.floor(n / 10)] + (n % 10 ? '-' + WORD_ONES[n % 10] : '');
+}
+
+function indianWords(n) {
+  n = Math.round(n);
+  if (n <= 0 || n >= 1e12) return '';
+  const parts = [];
+  const crore = Math.floor(n / 1e7); n %= 1e7;
+  const lakh = Math.floor(n / 1e5); n %= 1e5;
+  const thousand = Math.floor(n / 1e3); n %= 1e3;
+  const hundred = Math.floor(n / 100); n %= 100;
+  if (crore) parts.push((crore < 100 ? twoDigitWords(crore) : indianWords(crore)) + ' crore');
+  if (lakh) parts.push(twoDigitWords(lakh) + ' lakh');
+  if (thousand) parts.push(twoDigitWords(thousand) + ' thousand');
+  if (hundred) parts.push(WORD_ONES[hundred] + ' hundred');
+  if (n) parts.push(twoDigitWords(n));
+  return parts.join(' ');
+}
+
+function updateResultWords() {
+  document.querySelectorAll('#modal-body .result-main').forEach(main => {
+    let words = '';
+    const m = main.textContent.trim().match(/^(-?)₹([\d,]+(?:\.\d+)?)\s*(L|Cr|M|B)?$/);
+    if (m && !m[1]) {
+      const num = parseFloat(m[2].replace(/,/g, ''));
+      const mult = { L: 1e5, Cr: 1e7, M: 1e6, B: 1e9 }[m[3]] || 1;
+      const value = num * mult;
+      if (value >= 1000) words = '≈ ' + indianWords(value) + ' rupees';
+    }
+    let el = main.nextElementSibling;
+    if (!el || !el.classList.contains('result-words')) {
+      el = document.createElement('div');
+      el.className = 'result-words';
+      main.after(el);
+    }
+    el.textContent = words;
+  });
+}
+
+/* ---- Old regime tax (for the dashboard delta) ---- */
+function oldRegimeTaxEstimate(taxable) {
+  const slabs = [[250000, 0], [250000, 0.05], [500000, 0.20], [Infinity, 0.30]];
+  let remaining = taxable, tax = 0;
+  for (const [width, rate] of slabs) {
+    if (remaining <= 0) break;
+    const inSlab = Math.min(remaining, width);
+    tax += inSlab * rate;
+    remaining -= inSlab;
+  }
+  return tax * 1.04;
+}
+
+/* ============================================================
+   PLAYGROUND PACK 2
+   ============================================================ */
+function initPlayground2() {
+  initMythGame();
+  initWordGame();
+  initFireMini();
+  initLatteMini();
+  initWeek52Mini();
+  initAllocMini();
+  initNetWorthMini();
+  renderStatsTile();
+  initFYCountdown();
+}
+
+/* ---- Myth or Fact ---- */
+const MYTHS = [
+  { t: 'You need a lot of money to start investing.', myth: true, why: 'SIPs start at ₹500/month. Starting small and early beats starting big and late — time matters more than the amount.' },
+  { t: 'A higher income automatically makes you wealthy.', myth: true, why: 'Wealth = what you keep, not what you earn. High earners with lifestyle inflation often have lower net worth than disciplined moderate earners.' },
+  { t: 'Equity beats inflation over long horizons.', myth: false, why: 'Indian equity indices have beaten inflation in every 15-year rolling window on record. Short-term, though, anything can happen.' },
+  { t: 'Buying a house is always better than renting.', myth: true, why: 'It depends on price-to-rent ratios, tenure and mobility. In many Indian metros, renting + investing the difference builds more wealth over 10 years.' },
+  { t: 'Gold is the best long-term investment.', myth: true, why: 'Gold preserves value (~9-10% CAGR) but has long flat decades and no cash flow. Equity has historically compounded faster over 15+ years.' },
+  { t: 'Your PPF interest is completely tax-free.', myth: false, why: 'PPF is EEE — contributions get 80C deduction, interest is tax-free, and maturity is tax-free. One of the few such instruments left.' },
+  { t: 'Credit cards are bad for your finances.', myth: true, why: 'Cards used with full monthly repayment build credit score and give rewards. The danger is revolving balances at 36-42% APR.' },
+  { t: 'A term plan is cheaper in your 20s than your 30s.', myth: false, why: 'Premiums lock at purchase age. A ₹1 Cr cover at 25 can cost ~40% less per year than the same cover bought at 35.' },
+  { t: 'You should pause SIPs when markets fall.', myth: true, why: 'Falling markets are when SIPs buy more units. Pausing during dips is the single most corrosive retail investing habit.' },
+  { t: 'The new tax regime is better for everyone.', myth: true, why: 'It depends on your deductions. Heavy 80C + HRA + home-loan users can still pay less under the old regime. Run both before choosing.' },
+];
+
+let mythState = { offset: 0, answered: false };
+
+function initMythGame() {
+  if (!document.getElementById('myth-body')) return;
+  renderMyth();
+  updateMythScore();
+}
+
+function mythIndex() {
+  return (Math.floor(Date.now() / 86400000) + mythState.offset) % MYTHS.length;
+}
+
+function renderMyth() {
+  const body = document.getElementById('myth-body');
+  const m = MYTHS[mythIndex()];
+  mythState.answered = false;
+  body.innerHTML = `
+    <div class="myth-statement">“${m.t}”</div>
+    <div class="myth-actions">
+      <button class="btn btn-outline btn-sm" onclick="answerMyth(true)">🚫 Myth</button>
+      <button class="btn btn-outline btn-sm" onclick="answerMyth(false)">✅ Fact</button>
+    </div>`;
+}
+
+function answerMyth(saidMyth) {
+  if (mythState.answered) return;
+  mythState.answered = true;
+  const m = MYTHS[mythIndex()];
+  const right = saidMyth === m.myth;
+  if (right) {
+    const n = (parseInt(localStorage.getItem('fincalc-myth-correct') || '0', 10) || 0) + 1;
+    try { localStorage.setItem('fincalc-myth-correct', String(n)); } catch {}
+    if (n >= 5) award('myth-master');
+    launchConfetti();
+  }
+  updateMythScore();
+  const body = document.getElementById('myth-body');
+  body.innerHTML = `
+    <div class="myth-statement">“${m.t}”</div>
+    <div class="myth-reveal ${right ? 'right' : 'wrong'}">
+      <b>${right ? 'Correct!' : 'Not quite.'} That's a ${m.myth ? 'myth' : 'fact'}.</b> ${m.why}
+    </div>
+    <div class="myth-actions">
+      <button class="btn btn-primary btn-sm" onclick="mythState.offset++; renderMyth()">Next statement</button>
+    </div>`;
+}
+
+function updateMythScore() {
+  const el = document.getElementById('myth-score');
+  const n = parseInt(localStorage.getItem('fincalc-myth-correct') || '0', 10) || 0;
+  if (el) el.textContent = n ? `${n} busted` : '';
+}
+
+/* ---- The Money Word (daily puzzle) ---- */
+const WORD_POOL = ['MONEY', 'ASSET', 'BONDS', 'STOCK', 'FUNDS', 'LOANS', 'YIELD', 'TRADE', 'SHARE', 'DEBTS', 'TAXES', 'CRORE', 'LAKHS', 'PAISA', 'RUPEE', 'SAVER', 'BANKS', 'RATES', 'SCORE', 'PRICE', 'VALUE', 'AUDIT', 'INDEX', 'SPEND', 'HEDGE', 'VAULT', 'COINS'];
+
+function wordToday() {
+  return WORD_POOL[Math.floor(Date.now() / 86400000) % WORD_POOL.length];
+}
+
+function getWordState() {
+  try {
+    const st = JSON.parse(localStorage.getItem('fincalc-word') || 'null');
+    if (st && st.word === wordToday()) return st;
+  } catch {}
+  return { word: wordToday(), guesses: [], done: false, won: false };
+}
+
+function saveWordState(st) {
+  try { localStorage.setItem('fincalc-word', JSON.stringify(st)); } catch {}
+}
+
+function initWordGame() {
+  if (!document.getElementById('word-body')) return;
+  renderWordGame();
+}
+
+function wordTileClasses(guess, target) {
+  /* two-pass wordle scoring: exact hits first, then near-misses */
+  const res = Array(5).fill('miss');
+  const pool = {};
+  for (let i = 0; i < 5; i++) {
+    if (guess[i] === target[i]) res[i] = 'hit';
+    else pool[target[i]] = (pool[target[i]] || 0) + 1;
+  }
+  for (let i = 0; i < 5; i++) {
+    if (res[i] === 'miss' && pool[guess[i]] > 0) { res[i] = 'near'; pool[guess[i]]--; }
+  }
+  return res;
+}
+
+function renderWordGame() {
+  const body = document.getElementById('word-body');
+  const st = getWordState();
+  const rows = [];
+  for (let r = 0; r < 6; r++) {
+    const guess = st.guesses[r] || '';
+    const classes = guess ? wordTileClasses(guess, st.word) : [];
+    rows.push(`<div class="word-row">${Array.from({ length: 5 }, (_, i) =>
+      `<div class="word-tile ${classes[i] || ''}">${guess[i] || ''}</div>`).join('')}</div>`);
+  }
+  const msg = st.done
+    ? (st.won
+        ? `<b>Solved!</b> Today's word was ${st.word}. New word tomorrow — come back!`
+        : `The word was <b>${st.word}</b>. A fresh one lands tomorrow.`)
+    : `Guess the 5-letter money word. ${6 - st.guesses.length} tries left.`;
+  body.innerHTML = `
+    <div class="word-grid">${rows.join('')}</div>
+    ${st.done ? '' : `
+    <div class="word-input-row">
+      <input class="input word-input" id="word-input" maxlength="5" autocomplete="off" spellcheck="false"
+        aria-label="Your 5 letter guess" onkeydown="if(event.key==='Enter')submitWordGuess()" />
+      <button class="btn btn-primary btn-sm" onclick="submitWordGuess()">Guess</button>
+    </div>`}
+    <div class="word-msg">${msg}</div>`;
+}
+
+function submitWordGuess() {
+  const input = document.getElementById('word-input');
+  const guess = (input?.value || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (guess.length !== 5) { showToast('Enter a 5-letter word'); return; }
+  const st = getWordState();
+  if (st.done) return;
+  st.guesses.push(guess);
+  if (guess === st.word) {
+    st.done = true; st.won = true;
+    award('word-wizard');
+    launchConfetti();
+  } else if (st.guesses.length >= 6) {
+    st.done = true;
+  }
+  saveWordState(st);
+  renderWordGame();
+  if (!st.done) document.getElementById('word-input')?.focus();
+}
+
+/* ---- FIRE age mini ---- */
+function initFireMini() {
+  const body = document.getElementById('fire-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="mini-value" id="fire-age">--</div>
+    <div class="mini-sub" id="fire-sub"></div>
+    <div class="mini-slider-label"><span>Current age</span><b id="fire-age-label">30</b></div>
+    <input type="range" class="range-input" id="fire-cur-age" min="18" max="55" value="30" />
+    <div class="mini-slider-label"><span>Monthly expenses</span><b id="fire-exp-label">₹50k</b></div>
+    <input type="range" class="range-input" id="fire-exp" min="20000" max="300000" step="5000" value="50000" />
+    <div class="mini-slider-label"><span>Monthly investing</span><b id="fire-inv-label">₹30k</b></div>
+    <input type="range" class="range-input" id="fire-inv" min="5000" max="300000" step="5000" value="30000" />`;
+  const update = () => {
+    const age = parseFloat(document.getElementById('fire-cur-age').value);
+    const exp = parseFloat(document.getElementById('fire-exp').value);
+    const inv = parseFloat(document.getElementById('fire-inv').value);
+    document.getElementById('fire-age-label').textContent = age;
+    document.getElementById('fire-exp-label').textContent = FC.formatINR(exp);
+    document.getElementById('fire-inv-label').textContent = FC.formatINR(inv);
+    const target = exp * 12 * 25; /* 25x annual expenses */
+    const i = 0.12 / 12;
+    let fv = 0, months = 0;
+    while (fv < target && months < 720) { fv = fv * (1 + i) + inv; months++; }
+    const el = document.getElementById('fire-age');
+    if (months >= 720) {
+      el.textContent = '60+';
+      document.getElementById('fire-sub').innerHTML = 'At this pace FIRE is far off — try raising the monthly investing slider.';
+    } else {
+      el.textContent = 'Age ' + Math.round(age + months / 12);
+      document.getElementById('fire-sub').innerHTML = `That's when you'd hit <b>${FC.formatINR(target)}</b> (25× annual expenses) investing at 12% p.a.`;
+    }
+  };
+  body.querySelectorAll('input').forEach(el => el.addEventListener('input', update));
+  paintAllSliders(body);
+  update();
+}
+
+/* ---- Latte factor mini ---- */
+function initLatteMini() {
+  const body = document.getElementById('latte-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="mini-slider-label"><span>Daily habit spend</span><b id="latte-label">₹200</b></div>
+    <input type="range" class="range-input" id="latte-spend" min="50" max="1000" step="25" value="200" />
+    <div class="mini-value" id="latte-value">--</div>
+    <div class="mini-sub" id="latte-sub"></div>`;
+  const update = () => {
+    const d = parseFloat(document.getElementById('latte-spend').value);
+    document.getElementById('latte-label').textContent = '₹' + d;
+    const monthly = d * 30;
+    document.getElementById('latte-value').textContent = FC.formatINR(FC.sipFV(monthly, 0.12, 20));
+    document.getElementById('latte-sub').innerHTML =
+      `is what ₹${d}/day becomes in <b>20 years</b> if SIP'd at 12% instead. (10 yrs: <b>${FC.formatINR(FC.sipFV(monthly, 0.12, 10))}</b>)`;
+  };
+  document.getElementById('latte-spend').addEventListener('input', update);
+  paintAllSliders(body);
+  update();
+}
+
+/* ---- 52-week challenge mini ---- */
+function initWeek52Mini() {
+  const body = document.getElementById('week52-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="mini-slider-label"><span>Week-1 amount (grows weekly)</span><b id="w52-label">₹10</b></div>
+    <input type="range" class="range-input" id="w52-base" min="10" max="200" step="10" value="10" />
+    <div class="mini-value" id="w52-total">--</div>
+    <div class="mini-sub" id="w52-sub"></div>`;
+  const update = () => {
+    const base = parseFloat(document.getElementById('w52-base').value);
+    document.getElementById('w52-label').textContent = '₹' + base;
+    document.getElementById('w52-total').textContent = FC.formatINR(base * 1378);
+    document.getElementById('w52-sub').innerHTML =
+      `saved in one year: ₹${base} in week 1, ₹${base * 2} in week 2 … ₹${(base * 52).toLocaleString('en-IN')} in week 52. Painless because it ramps.`;
+  };
+  document.getElementById('w52-base').addEventListener('input', update);
+  paintAllSliders(body);
+  update();
+}
+
+/* ---- Age-based allocation mini ---- */
+function initAllocMini() {
+  const body = document.getElementById('alloc-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="mini-slider-label"><span>Your age</span><b id="alloc-age-label">30</b></div>
+    <input type="range" class="range-input" id="alloc-age" min="18" max="70" value="30" />
+    <div class="mini-value" id="alloc-split">--</div>
+    <div class="alloc-meter" id="alloc-meter"></div>
+    <div class="mini-sub" style="margin-top:0.6rem">The classic “110 − age” rule of thumb for equity vs debt. A guide, not gospel.</div>`;
+  const update = () => {
+    const age = parseInt(document.getElementById('alloc-age').value, 10);
+    const eq = Math.min(90, Math.max(20, 110 - age));
+    document.getElementById('alloc-age-label').textContent = age;
+    document.getElementById('alloc-split').textContent = `${eq}% : ${100 - eq}%`;
+    document.getElementById('alloc-meter').innerHTML =
+      `<i style="width:${eq}%;background:${cssVar('--ch-1')}" title="Equity ${eq}%"></i><i style="width:${100 - eq}%;background:${cssVar('--ch-2')}" title="Debt ${100 - eq}%"></i>`;
+  };
+  document.getElementById('alloc-age').addEventListener('input', update);
+  paintAllSliders(body);
+  update();
+}
+
+/* ---- Net worth mini ---- */
+function initNetWorthMini() {
+  const body = document.getElementById('networth-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="mini-form">
+      <div class="form-group"><label>Total assets (₹)</label><input type="number" class="input" id="nw-assets" value="2500000" min="0" /></div>
+      <div class="form-group"><label>Total loans (₹)</label><input type="number" class="input" id="nw-debts" value="800000" min="0" /></div>
+    </div>
+    <div class="mini-value" id="nw-value">--</div>
+    <div class="mini-sub">Everything you own minus everything you owe. <button class="chip" style="margin-left:0.3rem" onclick="openCalc('net-worth')">Full breakdown →</button></div>`;
+  const update = () => {
+    const nw = (parseFloat(document.getElementById('nw-assets').value) || 0) - (parseFloat(document.getElementById('nw-debts').value) || 0);
+    const el = document.getElementById('nw-value');
+    el.textContent = FC.formatINR(nw);
+    el.style.color = nw >= 0 ? 'var(--emerald)' : 'var(--red)';
+  };
+  body.querySelectorAll('input').forEach(el => el.addEventListener('input', update));
+  update();
+}
+
+/* ---- Session stats ---- */
+function renderStatsTile() {
+  const body = document.getElementById('stats-body');
+  if (!body) return;
+  const opens = parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0;
+  const saves = getSavedCalcs().length;
+  const badges = getBadges().length;
+  let streak = 0;
+  try { streak = (JSON.parse(localStorage.getItem('fincalc-streak') || '{}').n) || 0; } catch {}
+  const best = parseFloat(localStorage.getItem('fincalc-guess-best') || 'NaN');
+  body.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-tile"><b>${opens}</b><span>Calcs explored</span></div>
+      <div class="stat-tile"><b>${saves}</b><span>Saved results</span></div>
+      <div class="stat-tile"><b>${badges}/${Object.keys(BADGES).length}</b><span>Badges</span></div>
+      <div class="stat-tile"><b>${isNaN(best) ? streak + 'd' : best.toFixed(0) + '%'}</b><span>${isNaN(best) ? 'Streak' : 'Best guess'}</span></div>
+    </div>`;
+}
+
+/* ---- FY-end countdown ---- */
+function initFYCountdown() {
+  const body = document.getElementById('fy-body');
+  if (!body) return;
+  const elss = CALCULATORS.find(c => c.id.includes('elss')) || CALCULATORS.find(c => c.id === 'ppf');
+  const render = () => {
+    const now = new Date();
+    let fyEnd = new Date(now.getFullYear(), 2, 31, 23, 59, 59);
+    if (now > fyEnd) fyEnd = new Date(now.getFullYear() + 1, 2, 31, 23, 59, 59);
+    const ms = fyEnd - now;
+    const days = Math.floor(ms / 86400000);
+    const hours = Math.floor(ms % 86400000 / 3600000);
+    const mins = Math.floor(ms % 3600000 / 60000);
+    body.innerHTML = `
+      <div class="mini-sub">until FY ${fyEnd.getFullYear() - 1}–${String(fyEnd.getFullYear()).slice(2)} closes on Mar 31</div>
+      <div class="fy-count">
+        <div class="fy-unit"><b>${days}</b><span>days</span></div>
+        <div class="fy-unit"><b>${hours}</b><span>hrs</span></div>
+        <div class="fy-unit"><b>${mins}</b><span>min</span></div>
+      </div>
+      <div class="mini-sub">Tax-saving investments (80C, NPS, ELSS) must be in <b>before the deadline</b>.
+      ${elss ? `<button class="chip" style="margin-top:0.5rem" onclick="openCalc('${elss.id}')">Plan tax savings →</button>` : ''}</div>`;
+  };
+  render();
+  setInterval(render, 60000);
+}
+
+/* ============================================================
+   CONFETTI + EASTER EGG
+   ============================================================ */
+function launchConfetti(golden = false) {
+  if (App.reducedMotion) return;
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.classList.remove('hidden');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = window.innerWidth, h = window.innerHeight;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const colors = golden
+    ? ['#F5C86B', '#FDE68A', '#D97706', '#FFF7DB']
+    : ['#3B82F6', '#22D3EE', '#10B981', '#A78BFA', '#F5C86B'];
+  const parts = Array.from({ length: 110 }, () => ({
+    x: w / 2 + (Math.random() - 0.5) * w * 0.5,
+    y: h * 0.35 + (Math.random() - 0.5) * 60,
+    vx: (Math.random() - 0.5) * 11,
+    vy: -Math.random() * 11 - 3,
+    s: Math.random() * 7 + 3,
+    c: colors[Math.floor(Math.random() * colors.length)],
+    r: Math.random() * Math.PI,
+    vr: (Math.random() - 0.5) * 0.25,
+  }));
+  const t0 = performance.now();
+  (function tick(t) {
+    const elapsed = (t || performance.now()) - t0;
+    ctx.clearRect(0, 0, w, h);
+    parts.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.32; p.r += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r);
+      ctx.globalAlpha = Math.max(0, 1 - elapsed / 1900);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.62);
+      ctx.restore();
+    });
+    if (elapsed < 1900) requestAnimationFrame(tick);
+    else { ctx.clearRect(0, 0, w, h); canvas.classList.add('hidden'); }
+  })();
+}
+
+function initConfettiAndEgg() {
+  let buffer = '';
+  document.addEventListener('keydown', (e) => {
+    if (/^(input|textarea|select)$/i.test(document.activeElement?.tagName || '')) return;
+    if (e.key.length !== 1) return;
+    buffer = (buffer + e.key.toLowerCase()).slice(-6);
+    if (buffer === 'wealth') {
+      launchConfetti(true);
+      award('secret-wealth');
+      showToast('🔑 You found the secret word!');
+    }
   });
 }
