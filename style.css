@@ -2146,3 +2146,67 @@ body.compact .quick-card { padding: 1rem; }
 .coffee-bento-body .coffee-lead { flex: 1; min-width: 240px; }
 .coffee-bento-body .btn { flex: none; }
 @media (max-width: 1080px) { .coffee-bento { grid-column: span 12 !important; } }
+
+/* ============ 20 · COFFEE, LOUD EDITION ============ */
+.coffee-pill {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  font: 700 0.85rem/1 var(--font-body);
+  letter-spacing: 0.01em;
+  color: #1F1503;
+  background: linear-gradient(120deg, #FDE68A, #F5C86B 45%, #E9A23B);
+  background-size: 160% 160%;
+  border: 1px solid rgba(255, 235, 180, 0.8);
+  border-radius: 99px;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 22px rgba(233, 162, 59, 0.35);
+  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+  animation: coffee-glow 4.5s ease-in-out infinite;
+  white-space: nowrap;
+}
+@keyframes coffee-glow {
+  0%, 100% { box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 22px rgba(233, 162, 59, 0.35); }
+  50% { box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 34px rgba(233, 162, 59, 0.65); }
+}
+.coffee-pill:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 40px rgba(233, 162, 59, 0.7);
+}
+.coffee-pill:active { transform: scale(0.97); }
+.coffee-pill:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.coffee-emoji { font-size: 1.05em; animation: coffee-wiggle 4.5s ease-in-out infinite; display: inline-block; }
+@keyframes coffee-wiggle {
+  0%, 86%, 100% { transform: rotate(0); }
+  90% { transform: rotate(-12deg) scale(1.15); }
+  94% { transform: rotate(10deg) scale(1.15); }
+  98% { transform: rotate(-5deg); }
+}
+.coffee-pill-sm { padding: 0.45rem 0.95rem; font-size: 0.78rem; }
+
+/* placements */
+.coffee-pill-nav { flex: none; }
+.coffee-pill-hero { margin-top: 2.2rem; padding: 0.7rem 1.5rem; font-size: 0.92rem; animation: coffee-glow 4.5s ease-in-out infinite, rise 0.7s var(--ease) 0.4s both; }
+.coffee-fab {
+  position: fixed; bottom: 142px; right: 18px; z-index: 80;
+  width: auto; height: auto;
+  border-radius: 99px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+@media (min-width: 861px) { .coffee-fab { bottom: 76px; right: 22px; } }
+
+.modal-support {
+  flex: none;
+  display: flex; align-items: center; justify-content: center; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.8rem 1.4rem;
+  border-top: 1px solid var(--border);
+  background: rgba(245, 200, 107, 0.05);
+  font-size: 0.82rem; color: var(--text2);
+}
+
+@media (max-width: 860px) {
+  .coffee-pill-nav { display: none; } /* the floating pill covers mobile */
+  .coffee-pill-hero { font-size: 0.85rem; }
+  .coffee-fab { bottom: 148px; }
+}
+@media print { .modal-support, .coffee-pill { display: none !important; } }

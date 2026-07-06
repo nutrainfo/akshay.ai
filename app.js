@@ -2771,6 +2771,7 @@ function renderDashStrip() {
     chips.push(`<button class="dash-chip" onclick="openCalc('${topCalc.id}')">Your favorite: <b>${topCalc.name}</b></button>`);
   }
 
+  chips.push(`<button class="coffee-pill coffee-pill-sm" onclick="openCoffee()"><span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Buy me a coffee</span></button>`);
   strip.innerHTML = `<span class="dash-greeting">${daypart}${name ? ', ' + name : ''}.</span>` + chips.join('');
 }
 
