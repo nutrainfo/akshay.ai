@@ -965,6 +965,7 @@ function openCalc(id) {
     applyTooltips(body);
     applyResultColorCoding(body);
     wrapDetailedBreakdown(body);
+    injectTrustSignal(id);
     showToast('Inputs reset to defaults');
   };
   document.getElementById('modal-link').onclick = () => {
@@ -984,6 +985,7 @@ function openCalc(id) {
   applyTooltips(body);
   applyResultColorCoding(body);
   wrapDetailedBreakdown(body);
+  injectTrustSignal(id);
   trackRecent(id);
   try {
     const opened = (parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0) + 1;
@@ -4043,7 +4045,17 @@ function renderRelatedRail(id) {
   body.querySelector('.related-rail')?.remove();
   const calc = CALCULATORS.find(c => c.id === id);
   if (!calc) return;
-  const picks = CALCULATORS.filter(c => c.id !== id && c.cat === calc.cat).slice(0, 4);
+  const sameCat = CALCULATORS.filter(c => c.id !== id && c.cat === calc.cat);
+  let picks;
+  if (typeof PROFESSIONAL_CALC_IDS !== 'undefined' && PROFESSIONAL_CALC_IDS.has(id)) {
+    /* keep entity/compliance tools clustered together, then fill any
+       remaining slots with the rest of the category */
+    const priority = sameCat.filter(c => PROFESSIONAL_CALC_IDS.has(c.id));
+    const rest = sameCat.filter(c => !PROFESSIONAL_CALC_IDS.has(c.id));
+    picks = [...priority, ...rest].slice(0, 4);
+  } else {
+    picks = sameCat.slice(0, 4);
+  }
   if (!picks.length) return;
   const rail = document.createElement('div');
   rail.className = 'related-rail';
@@ -4065,6 +4077,7 @@ function updateQuickSentenceForCard(card) {
   const main = mainEl.textContent.trim();
   if (!label || !main || main === '--') return;
   let p = card.querySelector('.quick-sentence');
+  if (p && p.dataset.custom) return; /* calculator supplies its own summary line */
   if (!p) {
     p = document.createElement('p');
     p.className = 'quick-sentence';
@@ -4169,4 +4182,21 @@ function applyTooltips(container) {
     });
     if (used.size) { el.innerHTML = html; el.dataset.tipped = '1'; }
   });
+}
+
+/* ============================================================
+   TRUST SIGNALS — citation + "last updated for FY" tag on
+   tax/GST/business calculators (#6 of the improvement brief)
+   ============================================================ */
+function injectTrustSignal(id) {
+  const body = document.getElementById('modal-body');
+  if (!body || body.querySelector('.trust-line')) return; /* some calcs (TDS lookup) ship their own */
+  const calc = CALCULATORS.find(c => c.id === id);
+  if (!calc || !['tax', 'gst', 'business'].includes(calc.cat)) return;
+  const citation = calc.cat === 'gst' ? 'As per the CGST Act, 2017.' : 'As per the Income Tax Act, 2025.';
+  const line = document.createElement('div');
+  line.className = 'trust-line';
+  line.innerHTML = `<span class="trust-fy-tag">FY 2026-27</span><span>${citation} For illustrative purposes only — consult a qualified professional before filing or making financial decisions.</span>`;
+  const resultCard = body.querySelector('.calc-output > .result-card, .result-card');
+  resultCard?.insertAdjacentElement('afterend', line);
 }

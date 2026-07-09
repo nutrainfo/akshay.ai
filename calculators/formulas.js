@@ -318,6 +318,7 @@ const FC = (() => {
     sipFV, stepUpSIP, lumpsumFV, emi, amortSchedule,
     fdFV, rdFV, swpLongevity, swpSchedule, swpRemainingAfter,
     taxOldRegime, taxNewRegime,
+    oldRegimeSlabTax, newRegimeSlabTax, applySurchargeAndCess,
     npsFV, retirementCorpus, sipRequired,
     capitalGains, prepaymentImpact, ppfFV, childEducation,
     formatINR, pct
