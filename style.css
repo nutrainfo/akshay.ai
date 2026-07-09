@@ -2894,3 +2894,84 @@ body.hc .calc-card p, body.hc .bento-sub, body.hc .mini-sub { color: var(--text2
 .tds-table tbody tr:hover td { background: var(--surface2); color: var(--text); }
 .tds-section { font: 700 0.82rem/1 var(--font-head); color: var(--blue-bright); white-space: nowrap; }
 .tds-rate { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ============ 28 · DESIGN ADD-UPS ============ */
+
+/* --- Sun/moon morph theme toggle --- */
+.theme-morph-svg { overflow: visible; }
+.theme-morph .theme-sun-core {
+  fill: currentColor; stroke: none;
+  transform-origin: center;
+  transition: r 0.4s var(--ease);
+  r: 6px;
+}
+.theme-morph .theme-moon-cut {
+  transition: cx 0.4s var(--ease), cy 0.4s var(--ease);
+  cx: 24px; cy: 3px; /* dark: cutout is off-icon, so full disc shows... */
+}
+.theme-morph .theme-sun-rays {
+  stroke: currentColor;
+  opacity: 1;
+  transform-origin: center;
+  transition: opacity 0.35s var(--ease), transform 0.5s var(--ease);
+}
+/* Dark theme (default) shows a MOON: pull the cutout in to carve a crescent, hide rays */
+.theme-morph:not(.is-light) .theme-moon-cut { cx: 17px; cy: 6px; }
+.theme-morph:not(.is-light) .theme-sun-rays { opacity: 0; transform: rotate(-40deg) scale(0.5); }
+.theme-morph:not(.is-light) .theme-sun-core { r: 9px; }
+/* Light theme shows a SUN: cutout off-icon (full disc), rays visible */
+.theme-morph.is-light .theme-moon-cut { cx: 26px; cy: 3px; }
+.theme-morph.is-light .theme-sun-rays { opacity: 1; transform: rotate(0) scale(1); }
+.theme-morph.is-light .theme-sun-core { r: 5px; }
+
+/* --- Sticky quick-filter bar active glow --- */
+.quickfilter-chip.qf-active {
+  color: var(--blue-bright);
+  border-color: rgba(96,165,250,0.55);
+  background: rgba(59,130,246,0.1);
+  box-shadow: 0 0 16px rgba(59,130,246,0.22);
+}
+[data-theme="light"] .quickfilter-chip.qf-active { color: #1D4ED8; }
+
+/* --- "New" ribbon on calculator cards --- */
+.calc-card { position: relative; }
+.calc-new-badge {
+  position: absolute; top: 0.9rem; left: -0.35rem;
+  z-index: 2;
+  padding: 0.16rem 0.55rem 0.16rem 0.6rem;
+  font: 800 0.58rem/1 var(--font-body);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #05140b;
+  background: linear-gradient(120deg, var(--emerald), #5EEAD4);
+  border-radius: 4px 4px 4px 0;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+}
+.calc-new-badge::after {
+  content: ''; position: absolute; left: 0; bottom: -4px;
+  border: 2px solid transparent;
+  border-top-color: #0b6b4f; border-right-color: #0b6b4f;
+}
+
+/* --- Beginner mode: soften jargon-heavy chrome slightly --- */
+body.beginner .result-label { letter-spacing: 0.06em; }
+body.beginner .term-tip { border-bottom-style: solid; border-bottom-width: 1px; }
+
+/* --- PDF letterhead (screen-hidden, print-only) --- */
+.pdf-letterhead { display: none; }
+@media print {
+  .pdf-letterhead {
+    display: flex !important; align-items: center; gap: 0.75rem;
+    padding: 0 0 0.75rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #111;
+  }
+  .pdf-letterhead .pdf-logo {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: #111; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font: 800 1.1rem/1 var(--font-head);
+  }
+  .pdf-letterhead .pdf-brand { font: 800 1.15rem/1.1 var(--font-head); color: #000; }
+  .pdf-letterhead .pdf-brand span { color: #2563EB; }
+  .pdf-letterhead .pdf-meta { margin-left: auto; text-align: right; font-size: 0.72rem; color: #444; line-height: 1.4; }
+}

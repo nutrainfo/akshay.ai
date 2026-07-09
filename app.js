@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFeaturePack4();
   initQuickFilterBar();
   initWizard();
+  initDesignAddups();
   const marquee = document.getElementById('rate-marquee-track');
   if (marquee) marquee.innerHTML += marquee.innerHTML;
 });
@@ -337,8 +338,8 @@ function initTheme() {
 function applyTheme(theme, persist) {
   document.documentElement.dataset.theme = theme === 'light' ? 'light' : '';
   if (theme !== 'light') delete document.documentElement.dataset.theme;
-  document.getElementById('theme-icon-moon')?.classList.toggle('hidden', theme === 'light');
-  document.getElementById('theme-icon-sun')?.classList.toggle('hidden', theme !== 'light');
+  /* the sun/moon icon morphs via CSS off this class (light = sun) */
+  document.getElementById('theme-toggle')?.classList.toggle('is-light', theme === 'light');
   const dmToggle = document.getElementById('dark-mode-toggle');
   if (dmToggle) dmToggle.checked = theme !== 'light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#F5F6F9' : '#050505');
@@ -869,6 +870,7 @@ function renderCalcGrid(filter = 'all', search = '') {
          style="transition-delay:${(idx % 8) * 45}ms"
          onclick="openCalc('${c.id}')" onkeydown="if(event.key==='Enter')openCalc('${c.id}')"
          aria-label="${c.name}">
+      ${NEW_CALC_IDS.has(c.id) ? '<span class="calc-new-badge">New</span>' : ''}
       <div class="calc-card-top">
         <div class="calc-icon">${getIcon(c.id, 22)}</div>
         <span style="flex:1"></span>
@@ -949,8 +951,9 @@ function openCalc(id) {
        quick result */
     const opened = [...body.querySelectorAll('details.detail-toggle:not([open])')];
     opened.forEach(d => d.setAttribute('open', ''));
+    injectPdfLetterhead(id);
     window.print();
-    setTimeout(() => opened.forEach(d => d.removeAttribute('open')), 300);
+    setTimeout(() => { opened.forEach(d => d.removeAttribute('open')); body.querySelector('.pdf-letterhead')?.remove(); }, 500);
   };
   document.getElementById('modal-reset').onclick = () => {
     clearAutosavedInputs(id);
@@ -966,6 +969,7 @@ function openCalc(id) {
     applyResultColorCoding(body);
     wrapDetailedBreakdown(body);
     injectTrustSignal(id);
+    applyBeginnerLabels(body);
     showToast('Inputs reset to defaults');
   };
   document.getElementById('modal-link').onclick = () => {
@@ -986,6 +990,7 @@ function openCalc(id) {
   applyResultColorCoding(body);
   wrapDetailedBreakdown(body);
   injectTrustSignal(id);
+  applyBeginnerLabels(body);
   trackRecent(id);
   try {
     const opened = (parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0) + 1;
@@ -1173,7 +1178,7 @@ function shareResultImage(id) {
   ctx.beginPath(); ctx.moveTo(M, H - 84); ctx.lineTo(W - M, H - 84); ctx.stroke();
   ctx.font = '500 16px Inter, sans-serif';
   ctx.fillStyle = '#5D6474';
-  ctx.fillText('fincalcpro.in — 130+ free calculators. No ads, no sign-up.', M, H - 46);
+  ctx.fillText('fincalcpro.in — 150+ free calculators. No ads, no sign-up.', M, H - 46);
   ctx.textAlign = 'right';
   ctx.fillText('Not financial advice', W - M, H - 46);
   ctx.textAlign = 'left';
@@ -2072,36 +2077,64 @@ const INSTRUMENT_META = {
   ssy:        { label:'Sukanya Samriddhi', liquidity:'Very Low', risk:'None' },
 };
 
+/* how each instrument's gains are taxed, for the post-tax comparison mode */
+const INSTRUMENT_TAX = {
+  sip: 'equity', lumpsum: 'equity', elss: 'equity',
+  fd: 'slab', rd: 'slab', debt: 'slab',
+  gold: 'ltcg125', realestate: 'ltcg125',
+  crypto: 'crypto',
+  nps: 'exempt', ppf: 'exempt', ssy: 'exempt',
+};
+const TAX_TREATMENT_LABEL = {
+  equity: 'LTCG 12.5% (over ₹1.25L)', slab: 'Slab rate on gains',
+  ltcg125: 'LTCG 12.5%', crypto: 'Flat 30% on gains', exempt: 'Tax-free (EEE)',
+};
+function instrumentTax(inst, gain, slab) {
+  const t = INSTRUMENT_TAX[inst] || 'slab';
+  if (t === 'equity') return Math.max(0, gain - 125000) * 0.125;
+  if (t === 'slab') return gain * slab;
+  if (t === 'ltcg125') return gain * 0.125;
+  if (t === 'crypto') return gain * 0.30;
+  return 0; /* exempt */
+}
+
 function runComparison() {
   const amount = parseFloat(document.getElementById('cmp-amount')?.value) || 100000;
   const horizon = parseFloat(document.getElementById('cmp-horizon')?.value) || 10;
   const risk = document.getElementById('cmp-risk')?.value || 'moderate';
+  const taxMode = document.getElementById('cmp-tax')?.value || 'pre';
+  const slab = parseFloat(document.getElementById('cmp-slab')?.value) || 0.30;
+  const postTax = taxMode === 'post';
   const selected = [...document.querySelectorAll('.chip.active')].map(c => c.dataset.inst).slice(0, 3);
-  if (!selected.length) { alert('Select at least one instrument.'); return; }
+  if (!selected.length) { showToast('Select at least one instrument to compare'); return; }
 
   const rates = INSTRUMENT_PARAMS[risk];
   const results = selected.map(inst => {
     const rate = rates[inst] / 100;
-    let fv, monthlyInv = amount / (horizon * 12);
-    if (inst === 'sip') fv = FC.sipFV(monthlyInv, rate, horizon);
-    else if (inst === 'fd') fv = FC.fdFV(amount, rate, horizon, 4, 0).grossFV;
-    else if (inst === 'lumpsum') fv = FC.lumpsumFV(amount, rate, horizon);
-    else if (inst === 'gold') fv = FC.lumpsumFV(amount, rate, horizon);
-    else if (inst === 'nps') fv = FC.sipFV(monthlyInv, rate, horizon) * 1.15;
-    else if (inst === 'ppf') fv = FC.ppfFV(amount, Math.min(horizon, 30));
-    else if (inst === 'rd') fv = FC.rdFV(monthlyInv, rate, horizon * 12);
-    else if (inst === 'elss') fv = FC.sipFV(monthlyInv, rate, horizon);
-    else if (inst === 'debt') fv = FC.lumpsumFV(amount, rate, horizon);
-    else if (inst === 'realestate') fv = FC.lumpsumFV(amount, rate, horizon);
-    else if (inst === 'crypto') fv = FC.lumpsumFV(amount, rate, horizon);
+    let grossFv, monthlyInv = amount / (horizon * 12);
+    if (inst === 'sip') grossFv = FC.sipFV(monthlyInv, rate, horizon);
+    else if (inst === 'fd') grossFv = FC.fdFV(amount, rate, horizon, 4, 0).grossFV;
+    else if (inst === 'lumpsum') grossFv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'gold') grossFv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'nps') grossFv = FC.sipFV(monthlyInv, rate, horizon) * 1.15;
+    else if (inst === 'ppf') grossFv = FC.ppfFV(amount, Math.min(horizon, 30));
+    else if (inst === 'rd') grossFv = FC.rdFV(monthlyInv, rate, horizon * 12);
+    else if (inst === 'elss') grossFv = FC.sipFV(monthlyInv, rate, horizon);
+    else if (inst === 'debt') grossFv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'realestate') grossFv = FC.lumpsumFV(amount, rate, horizon);
+    else if (inst === 'crypto') grossFv = FC.lumpsumFV(amount, rate, horizon);
     else if (inst === 'ssy') {
       let corpus = 0;
       for (let y = 0; y < Math.min(horizon, 15); y++) corpus = (corpus + amount) * (1 + rate);
       if (horizon > 15) corpus *= Math.pow(1 + rate, horizon - 15);
-      fv = corpus;
+      grossFv = corpus;
     }
+    const gain = Math.max(0, grossFv - amount);
+    const tax = instrumentTax(inst, gain, slab);
+    const netFv = grossFv - tax;
+    const fv = postTax ? netFv : grossFv; /* the value driving bars/winner/ranking */
     const meta = INSTRUMENT_META[inst];
-    return { inst, fv, rate, meta };
+    return { inst, fv, grossFv, netFv, tax, rate, meta };
   });
 
   const maxFV = Math.max(...results.map(r => r.fv));
@@ -2112,7 +2145,7 @@ function runComparison() {
   const chartEl = document.getElementById('compare-chart');
   if (chartEl) {
     const barColors = [cssVar('--ch-1'), cssVar('--ch-2'), cssVar('--ch-4')];
-    chartEl.innerHTML = `<div class="compare-chart-title">Projected value after ${horizon} years</div>` +
+    chartEl.innerHTML = `<div class="compare-chart-title">${postTax ? 'Post-tax value' : 'Projected value'} after ${horizon} years</div>` +
       results.map((r, i) => `
         <div class="compare-bar-row">
           <span class="compare-bar-label"><i style="background:${barColors[i]}"></i>${r.meta.label}</span>
@@ -2129,7 +2162,16 @@ function runComparison() {
   const tbody = document.getElementById('compare-tbody');
   thead.innerHTML = `<tr><th>Metric</th>${results.map(r => `<th>${r.meta.label}</th>`).join('')}</tr>`;
 
-  const metrics = [
+  const metrics = postTax ? [
+    ['Return Rate', r => `${(r.rate*100).toFixed(1)}%`],
+    ['Gross Value', r => FC.formatINR(r.grossFv)],
+    ['Tax Treatment', r => TAX_TREATMENT_LABEL[INSTRUMENT_TAX[r.inst] || 'slab']],
+    ['Estimated Tax', r => FC.formatINR(r.tax)],
+    ['Post-tax Value', r => FC.formatINR(r.netFv)],
+    ['Post-tax Return', r => `${((r.netFv/amount - 1)*100).toFixed(0)}%`],
+    ['Liquidity', r => r.meta.liquidity],
+    ['Risk Level', r => r.meta.risk],
+  ] : [
     ['Return Rate', r => `${(r.rate*100).toFixed(1)}%`],
     ['Future Value', r => FC.formatINR(r.fv)],
     ['Absolute Return', r => `${((r.fv/amount - 1)*100).toFixed(0)}%`],
@@ -2138,8 +2180,9 @@ function runComparison() {
     ['Risk Level', r => r.meta.risk],
   ];
 
+  const winnerRowLabel = postTax ? 'Post-tax Value' : 'Future Value';
   tbody.innerHTML = metrics.map(([label, fn]) =>
-    `<tr><td style="font-weight:600;color:var(--text2)">${label}</td>${results.map(r => `<td>${fn(r)}${r === winner && label === 'Future Value' ? '<span class="best-badge">Best</span>' : ''}</td>`).join('')}</tr>`
+    `<tr><td style="font-weight:600;color:var(--text2)">${label}</td>${results.map(r => `<td>${fn(r)}${r === winner && label === winnerRowLabel ? '<span class="best-badge">Best</span>' : ''}</td>`).join('')}</tr>`
   ).join('');
 
   const verdictEl = document.getElementById('compare-verdict');
@@ -3700,7 +3743,7 @@ function shareBadgesImage() {
   });
   ctx.font = '500 15px Inter, sans-serif';
   ctx.fillStyle = '#5D6474';
-  ctx.fillText('fincalcpro.in — 130+ free financial calculators', W / 2, H - 36);
+  ctx.fillText('fincalcpro.in — 150+ free financial calculators', W / 2, H - 36);
   canvas.toBlob(b => b && downloadBlob(b, 'fincalcpro-badges.png'), 'image/png');
 }
 
@@ -4199,4 +4242,147 @@ function injectTrustSignal(id) {
   line.innerHTML = `<span class="trust-fy-tag">FY 2026-27</span><span>${citation} For illustrative purposes only — consult a qualified professional before filing or making financial decisions.</span>`;
   const resultCard = body.querySelector('.calc-output > .result-card, .result-card');
   resultCard?.insertAdjacentElement('afterend', line);
+}
+
+/* ============================================================
+   DESIGN ADD-UPS — rotating placeholder, sticky-bar spy,
+   beginner mode, "New" ribbon set, PDF letterhead
+   ============================================================ */
+
+/* Calculators to flag with a "New" ribbon (the recent professional
+   tools + the reworked SWP). Kept as a hardcoded set so it's a
+   deliberate curatorial choice, not "everything added recently". */
+const NEW_CALC_IDS = new Set([
+  'swp', 'advance-tax', 'gst-late-fee', 'presumptive-tax', 'tax-audit-checker',
+  'csr-calculator', 'professional-tax', 'stp-calculator', 'tax-loss-harvesting',
+  'bond-ytm', 'affordability-checker', 'insurance-quick-need', 'payslip-explainer',
+  'cii-lookup', 'xirr-calculator', 'huf-tax', 'partnership-llp-tax', 'company-tax',
+  'gst-forward-charge', 'gst-reverse-charge', 'gst-composition', 'gst-itc-eligibility',
+  'roc-additional-fee', 'depreciation-comparison', 'tds-rate-lookup',
+]);
+
+function initDesignAddups() {
+  initRotatingPlaceholder();
+  initFilterBarSpy();
+  initBeginnerMode();
+  initPostTaxSlabVisibility();
+  /* generic calculators rebuild their result grid on every keystroke,
+     wiping color-coding classes and beginner labels — re-apply them
+     on the next frame after any modal input change (rAF-debounced,
+     so it never fights the mutation that triggered it) */
+  let reapplyQueued = false;
+  document.addEventListener('input', (e) => {
+    if (reapplyQueued || !e.target.closest?.('#modal-body')) return;
+    reapplyQueued = true;
+    requestAnimationFrame(() => {
+      reapplyQueued = false;
+      const body = document.getElementById('modal-body');
+      if (!body) return;
+      applyResultColorCoding(body);
+      applyBeginnerLabels(body);
+    });
+  });
+}
+
+/* --- Rotating hero search placeholder --- */
+function initRotatingPlaceholder() {
+  const input = document.getElementById('hero-search-input');
+  if (!input || App.reducedMotion) return;
+  const examples = ['SIP', 'home loan EMI', 'income tax', 'GST', 'HUF tax', 'XIRR', 'gratuity', 'retirement corpus', 'advance tax', 'FD returns'];
+  let i = 0;
+  const base = 'Try “';
+  const tick = () => {
+    if (document.activeElement === input || input.value) return; /* don't fight the user */
+    i = (i + 1) % examples.length;
+    input.setAttribute('placeholder', `${base}${examples[i]}”…`);
+  };
+  setInterval(tick, 2600);
+}
+
+/* --- Sticky filter bar: highlight the category nearest the viewport --- */
+function initFilterBarSpy() {
+  const bar = document.getElementById('quickfilter-bar');
+  const grid = document.getElementById('calc-grid');
+  if (!bar || !grid) return;
+  const chips = [...bar.querySelectorAll('.quickfilter-chip')];
+  const catFor = (href) => href; /* chips call filterCategory; we read their onclick target */
+  const setActive = (cat) => {
+    chips.forEach(ch => {
+      const matches = ch.getAttribute('onclick')?.includes(`'${cat}'`);
+      ch.classList.toggle('qf-active', !!matches);
+    });
+  };
+  /* When the user picks a filter, light up that chip; clear on "all". */
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.filter;
+      if (f === 'all' || f === 'favorites') chips.forEach(ch => ch.classList.remove('qf-active'));
+      else setActive(f);
+    });
+  });
+}
+
+/* --- Beginner mode: swap jargon-heavy result labels for plain wording --- */
+const BEGINNER_LABELS = {
+  'MAT Applicable': 'Minimum company tax applies?',
+  'MAT (15% of Book Profit)': 'Minimum tax (15% of book profit)',
+  'MAT Credit Carried Forward': 'Extra tax you can reclaim later',
+  'CAGR': 'Yearly growth rate',
+  'XIRR — Annualized Return': 'Your real yearly return',
+  'Post-tax Value': 'What you keep after tax',
+  'FOIR': 'Share of income going to EMIs',
+  'ITC Claimable (if for business use)': 'GST you can claim back (business use)',
+  'Effective Tax Rate': 'Overall tax rate on your income',
+  'Taxable Income': 'Income actually taxed',
+};
+
+function initBeginnerMode() {
+  const toggle = document.getElementById('beginner-toggle');
+  if (!toggle) return;
+  toggle.checked = localStorage.getItem('fincalc-beginner') === '1';
+  document.body.classList.toggle('beginner', toggle.checked);
+  toggle.addEventListener('change', () => {
+    document.body.classList.toggle('beginner', toggle.checked);
+    try { localStorage.setItem('fincalc-beginner', toggle.checked ? '1' : ''); } catch {}
+    if (App.currentCalc) { calcLive(App.currentCalc); setTimeout(() => applyBeginnerLabels(document.getElementById('modal-body')), 30); }
+    showToast(toggle.checked ? 'Beginner mode on — simpler wording' : 'Beginner mode off');
+  });
+}
+
+function beginnerModeOn() {
+  return document.body.classList.contains('beginner');
+}
+
+function applyBeginnerLabels(container) {
+  if (!container || !beginnerModeOn()) return;
+  container.querySelectorAll('.result-item-label, .result-label').forEach(el => {
+    const t = el.textContent.trim();
+    if (BEGINNER_LABELS[t]) { el.dataset.orig = el.dataset.orig || t; el.textContent = BEGINNER_LABELS[t]; }
+  });
+}
+
+/* --- Post-tax slab select only matters in post-tax mode --- */
+function initPostTaxSlabVisibility() {
+  const taxSel = document.getElementById('cmp-tax');
+  const slabGroup = document.getElementById('cmp-slab')?.closest('.form-group');
+  if (!taxSel || !slabGroup) return;
+  const sync = () => { slabGroup.style.opacity = taxSel.value === 'post' ? '1' : '0.45'; };
+  taxSel.addEventListener('change', sync);
+  sync();
+}
+
+/* --- PDF letterhead: injected into the modal only during print --- */
+function injectPdfLetterhead(id) {
+  const body = document.getElementById('modal-body');
+  if (!body) return;
+  body.querySelector('.pdf-letterhead')?.remove();
+  const calc = CALCULATORS.find(c => c.id === id);
+  const now = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const head = document.createElement('div');
+  head.className = 'pdf-letterhead';
+  head.innerHTML = `
+    <span class="pdf-logo">F</span>
+    <span class="pdf-brand">FinCalc<span>Pro</span></span>
+    <span class="pdf-meta">${calc ? calc.name : 'Calculation'}<br>Generated ${now} · fincalcpro.in</span>`;
+  body.prepend(head);
 }
