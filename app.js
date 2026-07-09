@@ -1252,14 +1252,17 @@ function uiSWP() {
       ${sliderField('swp-corpus','Starting Corpus (₹)','10000','50000000','10000','1000000')}
       ${sliderField('swp-withdrawal','Monthly Withdrawal (₹)','1000','200000','1000','10000')}
       ${sliderField('swp-rate','Expected Return (% p.a.)','1','20','0.5','8')}
+      ${sliderField('swp-horizon','Your Planning Horizon (Years)','1','40','1','20')}
     </div>
     <div class="calc-output">
-      <div class="result-card"><div class="result-label">Corpus Lasts For</div><div class="result-main" id="swp-duration">-- months</div>
+      <div class="result-card"><div class="result-label">Corpus Lasts Exactly</div><div class="result-main" id="swp-duration">--</div>
         <div class="result-grid">
+          <div class="result-item"><div class="result-item-val" id="swp-remaining-horizon">--</div><div class="result-item-label" id="swp-remaining-horizon-label">Remaining After Horizon</div></div>
           <div class="result-item"><div class="result-item-val" id="swp-total-withdrawn">--</div><div class="result-item-label">Total Withdrawn</div></div>
-          <div class="result-item"><div class="result-item-val" id="swp-last-corpus">--</div><div class="result-item-label">Remaining Corpus</div></div>
+          <div class="result-item"><div class="result-item-val" id="swp-last-corpus">--</div><div class="result-item-label">Corpus At Depletion</div></div>
         </div>
       </div>
+      <div class="calc-chart-wrap"><canvas id="swp-chart" width="380" height="160" aria-label="Corpus depletion chart"></canvas></div>
       <div class="calc-explanation" id="swp-explain"></div>
     </div>
   </div>`;
@@ -1624,14 +1627,34 @@ function calcLive(id) {
       break;
     }
     case 'swp': {
-      const corpus = get('swp-corpus',1000000), withdrawal = get('swp-withdrawal',10000), rate = get('swp-rate',8)/100;
-      const months = FC.swpLongevity(corpus, withdrawal, rate);
-      set('swp-duration', months === Infinity ? 'Forever (sustainable)' : `${months} months (${(months/12).toFixed(1)} yrs)`);
-      set('swp-total-withdrawn', months === Infinity ? '∞' : fmt(withdrawal * months));
-      set('swp-last-corpus', months === Infinity ? fmt(corpus) : '₹0');
-      set('swp-explain', months === Infinity
-        ? `At ${(rate*100).toFixed(1)}% p.a., your ${fmt(corpus)} corpus earns enough to sustain ${fmt(withdrawal)}/month withdrawals indefinitely.`
-        : `Your corpus of ${fmt(corpus)} will support ${fmt(withdrawal)}/month withdrawals for about ${(months/12).toFixed(1)} years.`);
+      const corpus = get('swp-corpus',1000000), withdrawal = get('swp-withdrawal',10000), rate = get('swp-rate',8)/100, horizon = get('swp-horizon',20);
+      const sched = FC.swpSchedule(corpus, withdrawal, rate, 1200); /* exact, capped at 100 years */
+      const horizonMonths = Math.round(horizon * 12);
+
+      if (sched.sustainable) {
+        set('swp-duration', '100+ yrs (sustainable)');
+      } else {
+        const yrs = Math.floor(sched.months / 12), mos = sched.months % 12;
+        set('swp-duration', mos === 0 ? `${yrs} yr${yrs===1?'':'s'}` : `${yrs} yr${yrs===1?'':'s'} ${mos} mo`);
+      }
+
+      const remainingAtHorizon = sched.sustainable || horizonMonths < sched.months
+        ? FC.swpRemainingAfter(corpus, withdrawal, rate, horizonMonths)
+        : 0;
+      set('swp-remaining-horizon', fmt(remainingAtHorizon));
+      set('swp-remaining-horizon-label', `Remaining After ${horizon} Yr${horizon==1?'':'s'}`);
+
+      const withdrawnMonths = sched.sustainable ? horizonMonths : sched.months;
+      set('swp-total-withdrawn', fmt(withdrawal * withdrawnMonths));
+      set('swp-last-corpus', sched.sustainable ? fmt(sched.finalBalance) : '₹0');
+
+      set('swp-explain', sched.sustainable
+        ? `At ${(rate*100).toFixed(1)}% p.a., your ${fmt(corpus)} corpus earns more than the ${fmt(withdrawal)}/month you're withdrawing, so it lasts 100+ years and keeps growing. At the end of your ${horizon}-year horizon you'd still have roughly ${fmt(remainingAtHorizon)}.`
+        : horizonMonths >= sched.months
+          ? `Your corpus of ${fmt(corpus)} withdrawing ${fmt(withdrawal)}/month at ${(rate*100).toFixed(1)}% p.a. lasts exactly ${Math.floor(sched.months/12)} year${Math.floor(sched.months/12)===1?'':'s'}${sched.months%12 ? ` ${sched.months%12} month${sched.months%12===1?'':'s'}` : ''} — it runs out before your ${horizon}-year horizon, so nothing remains at year ${horizon}.`
+          : `Your corpus of ${fmt(corpus)} withdrawing ${fmt(withdrawal)}/month at ${(rate*100).toFixed(1)}% p.a. lasts exactly ${Math.floor(sched.months/12)} year${Math.floor(sched.months/12)===1?'':'s'}${sched.months%12 ? ` ${sched.months%12} month${sched.months%12===1?'':'s'}` : ''}. At the end of your ${horizon}-year horizon (shorter than that), you'd still have ${fmt(remainingAtHorizon)} left.`);
+
+      drawSWPChart('swp-chart', sched, corpus, horizonMonths);
       break;
     }
     case 'sip-vs-lumpsum': {
@@ -1857,6 +1880,65 @@ function drawCompareChart(canvasId, fn1, fn2, years, label1, label2) {
     ctx.fillStyle = chartTextColor();
     ctx.fillText(lbl, 34, 18 + li * 14);
   });
+}
+
+function drawSWPChart(canvasId, sched, corpus, horizonMonths) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const { ctx, w, h } = chartCtx(canvas);
+  const c1 = cssVar('--ch-1'), cGold = cssVar('--ch-3');
+
+  const points = sched.points;
+  const totalMonths = points[points.length - 1].month || 1;
+  const maxVal = Math.max(corpus, ...points.map(p => p.balance)) || 1;
+  const toX = (m) => (m / totalMonths) * (w - 40) + 20;
+  const toY = (v) => h - 20 - (v / maxVal) * (h - 34);
+
+  /* gradient area under the depletion curve */
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, c1 + '42');
+  grad.addColorStop(1, c1 + '00');
+  ctx.beginPath();
+  ctx.moveTo(toX(0), h - 20);
+  points.forEach(p => ctx.lineTo(toX(p.month), toY(p.balance)));
+  ctx.lineTo(toX(totalMonths), h - 20);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* balance line */
+  ctx.beginPath();
+  points.forEach((p, i) => i === 0 ? ctx.moveTo(toX(p.month), toY(p.balance)) : ctx.lineTo(toX(p.month), toY(p.balance)));
+  ctx.strokeStyle = c1;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  /* marker at the user's planning horizon, if within the plotted range */
+  if (horizonMonths > 0 && horizonMonths <= totalMonths) {
+    const hx = toX(horizonMonths);
+    ctx.beginPath();
+    ctx.moveTo(hx, 10);
+    ctx.lineTo(hx, h - 20);
+    ctx.strokeStyle = cGold;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /* legend */
+  ctx.font = '10px Inter, sans-serif';
+  ctx.fillStyle = c1;
+  ctx.fillRect(22, 10, 8, 8);
+  ctx.fillStyle = chartTextColor();
+  ctx.fillText('Corpus balance', 34, 18);
+  if (horizonMonths > 0 && horizonMonths <= totalMonths) {
+    ctx.fillStyle = cGold;
+    ctx.fillRect(22, 24, 8, 8);
+    ctx.fillStyle = chartTextColor();
+    ctx.fillText('Your horizon', 34, 32);
+  }
 }
 
 function drawAmortChart(canvasId, schedule) {

@@ -82,6 +82,39 @@ const FC = (() => {
     return Infinity;
   }
 
+  /* Exact month-by-month SWP simulation (matches the ordinary-annuity
+     convention above: interest accrues, then the withdrawal is taken).
+     Runs until the corpus is depleted or capMonths is reached, whichever
+     is first — capMonths defaults to 100 years so "sustainable" corpora
+     don't loop forever while still catching very-long-but-finite cases. */
+  function swpSchedule(corpus, withdrawal, rateAnnual, capMonths = 1200) {
+    const r = rateAnnual / 12;
+    let balance = corpus;
+    const points = [{ month: 0, balance }];
+    let depletedAt = null;
+    for (let m = 1; m <= capMonths; m++) {
+      balance = balance * (1 + r) - withdrawal;
+      if (balance <= 0) {
+        points.push({ month: m, balance: 0 });
+        depletedAt = m;
+        break;
+      }
+      points.push({ month: m, balance });
+    }
+    return { months: depletedAt, finalBalance: Math.max(0, balance), points, sustainable: depletedAt === null };
+  }
+
+  /* Balance remaining after exactly `months` of withdrawals (0 once depleted). */
+  function swpRemainingAfter(corpus, withdrawal, rateAnnual, months) {
+    const r = rateAnnual / 12;
+    let balance = corpus;
+    for (let m = 1; m <= months; m++) {
+      balance = balance * (1 + r) - withdrawal;
+      if (balance <= 0) return 0;
+    }
+    return balance;
+  }
+
   /* ---- Income Tax (FY 2026-27, Income Tax Act 2025 slabs) ---- */
 
   /* Surcharge slabs, sorted ascending by threshold */
@@ -283,7 +316,7 @@ const FC = (() => {
 
   return {
     sipFV, stepUpSIP, lumpsumFV, emi, amortSchedule,
-    fdFV, rdFV, swpLongevity,
+    fdFV, rdFV, swpLongevity, swpSchedule, swpRemainingAfter,
     taxOldRegime, taxNewRegime,
     npsFV, retirementCorpus, sipRequired,
     capitalGains, prepaymentImpact, ppfFV, childEducation,
