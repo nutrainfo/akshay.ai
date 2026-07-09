@@ -99,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlayground2();
   initConfettiAndEgg();
   initFeaturePack4();
+  initQuickFilterBar();
+  initWizard();
   const marquee = document.getElementById('rate-marquee-track');
   if (marquee) marquee.innerHTML += marquee.innerHTML;
 });
@@ -389,6 +391,7 @@ const CATEGORY_META = {
   investment:   { label: 'Investment',       icon: 'sip' },
   loan:         { label: 'Loans',            icon: 'home-loan' },
   tax:          { label: 'Tax',              icon: 'income-tax' },
+  gst:          { label: 'GST',              icon: 'income-tax' },
   savings:      { label: 'Savings',          icon: 'rd' },
   retirement:   { label: 'Retirement',       icon: 'nps' },
   business:     { label: 'Business',         icon: 'tax' },
@@ -654,10 +657,17 @@ function initHeroSearch() {
 function initHeroStats() {
   const els = document.querySelectorAll('.stat-val[data-count]');
   if (!els.length) return;
+  /* the HTML already contains the correct final numbers (no "0 Calculators"
+     flash on slow JS / first paint / no-JS). The count-up below is a pure
+     delight animation, and only plays once per browser so repeat visits
+     render the correct value immediately with zero motion. */
+  let alreadySeen = false;
+  try { alreadySeen = localStorage.getItem('fincalc-stats-seen') === '1'; } catch {}
+  if (alreadySeen || App.reducedMotion) return;
   const animate = (el) => {
     const target = parseFloat(el.dataset.count) || 0;
     const suffix = el.dataset.suffix || '';
-    if (App.reducedMotion || target === 0) { el.textContent = target + suffix; return; }
+    if (target === 0) return; /* static "0" is already correct */
     const dur = 1400, t0 = performance.now();
     const tick = (t) => {
       const p = Math.min((t - t0) / dur, 1);
@@ -671,6 +681,7 @@ function initHeroStats() {
     entries.forEach(e => { if (e.isIntersecting) { animate(e.target); io.unobserve(e.target); } });
   }, { threshold: 0.5 });
   els.forEach(el => io.observe(el));
+  try { localStorage.setItem('fincalc-stats-seen', '1'); } catch {}
 }
 
 function initQuickWidgets() {
@@ -932,7 +943,15 @@ function openCalc(id) {
   document.getElementById('modal-copy').onclick = () => copyResult(id);
   document.getElementById('modal-save').onclick = () => saveCalculation(id);
   document.getElementById('modal-image').onclick = () => shareResultImage(id);
-  document.getElementById('modal-pdf').onclick = () => window.print();
+  document.getElementById('modal-pdf').onclick = () => {
+    /* force any collapsed Detailed Breakdown open so the PDF/print
+       export includes the full formula and breakdown, not just the
+       quick result */
+    const opened = [...body.querySelectorAll('details.detail-toggle:not([open])')];
+    opened.forEach(d => d.setAttribute('open', ''));
+    window.print();
+    setTimeout(() => opened.forEach(d => d.removeAttribute('open')), 300);
+  };
   document.getElementById('modal-reset').onclick = () => {
     clearAutosavedInputs(id);
     body.innerHTML = buildCalcUI(id);
@@ -941,6 +960,11 @@ function openCalc(id) {
     watchResultPulse(body);
     document.querySelectorAll('#modal-body .result-main').forEach(m => updateResultDelta(m));
     injectAmortCopy();
+    renderRelatedRail(id);
+    injectQuickSentence(body);
+    applyTooltips(body);
+    applyResultColorCoding(body);
+    wrapDetailedBreakdown(body);
     showToast('Inputs reset to defaults');
   };
   document.getElementById('modal-link').onclick = () => {
@@ -955,6 +979,11 @@ function openCalc(id) {
   document.getElementById('modal-prev').onclick = () => openCalc(order[(at - 1 + order.length) % order.length]);
   document.getElementById('modal-next').onclick = () => openCalc(order[(at + 1) % order.length]);
   updateResultWords();
+  renderRelatedRail(id);
+  injectQuickSentence(body);
+  applyTooltips(body);
+  applyResultColorCoding(body);
+  wrapDetailedBreakdown(body);
   trackRecent(id);
   try {
     const opened = (parseInt(localStorage.getItem('fincalc-opens') || '0', 10) || 0) + 1;
@@ -994,6 +1023,7 @@ function watchResultPulse(body) {
         main.classList.add('pulse');
         updateResultWords();
         updateResultDelta(main);
+        updateQuickSentence(main);
       }
     });
   });
@@ -2883,7 +2913,6 @@ function renderDashStrip() {
     chips.push(`<span class="dash-chip" style="cursor:default">💸 Payday in <b>${days} day${days > 1 ? 's' : ''}</b></span>`);
   }
 
-  chips.push(`<button class="coffee-pill coffee-pill-sm" onclick="openCoffee()"><span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Buy me a coffee</span></button>`);
   strip.innerHTML = `<span class="dash-greeting">${daypart}${name ? ', ' + name : ''}.</span>` + chips.join('');
 }
 
@@ -3881,4 +3910,263 @@ function weeklyRecap() {
   if (!data || data.week < week) {
     try { localStorage.setItem('fincalc-week', JSON.stringify({ week, opens })); } catch {}
   }
+}
+
+/* ============================================================
+   FEATURE PACK 6 — layout hierarchy, two-tier results, wizard,
+   related calculators, tooltips
+   ============================================================ */
+
+/* ---- Sticky quick-filter bar (below hero, above Command Center) ---- */
+function initQuickFilterBar() {
+  const wrap = document.getElementById('quickfilter-chips');
+  if (!wrap) return;
+  const keys = ['tax', 'investment', 'loan', 'gst', 'retirement', 'insurance'];
+  wrap.innerHTML = keys.map(cat => {
+    const meta = CATEGORY_META[cat];
+    if (!meta) return '';
+    return `<a class="quickfilter-chip" href="#calculators" onclick="filterCategory('${cat}')">${getIcon(meta.icon, 14)}${meta.label}</a>`;
+  }).join('');
+}
+
+/* ============================================================
+   "WHICH CALCULATOR DO I NEED?" WIZARD
+   ============================================================ */
+const WIZARD_TREE = {
+  q: 'What brings you here today?',
+  options: [
+    { label: '📈 Plan an investment', next: {
+      q: 'How do you want to invest?',
+      options: [
+        { label: 'A fixed amount every month (SIP)', calc: 'sip' },
+        { label: 'A one-time lumpsum', calc: 'lumpsum' },
+        { label: 'I have a specific target amount in mind', calc: 'sip-goal' },
+        { label: 'I want to compare SIP vs lumpsum', calc: 'sip-vs-lumpsum' },
+      ],
+    } },
+    { label: '🏦 Manage a loan or EMI', next: {
+      q: 'What kind of loan is it?',
+      options: [
+        { label: 'Home loan', calc: 'home-loan' },
+        { label: 'Car loan', calc: 'car-loan' },
+        { label: 'Education loan', calc: 'edu-loan' },
+        { label: 'I want to prepay / close it early', calc: 'prepayment' },
+      ],
+    } },
+    { label: '🧾 File or estimate taxes', next: {
+      q: 'What best describes your situation?',
+      options: [
+        { label: 'Salaried — which regime is better for me?', calc: 'tax-regime-comparison' },
+        { label: 'I run a company or business', calc: 'company-tax' },
+        { label: 'I need to charge or check GST', calc: 'gst-forward-charge' },
+        { label: 'I deduct or pay TDS', calc: 'tds-rate-lookup' },
+      ],
+    } },
+    { label: '🌅 Plan for retirement', next: {
+      q: 'What matters most right now?',
+      options: [
+        { label: 'How big a corpus will I need?', calc: 'retirement' },
+        { label: 'Grow my NPS & save tax', calc: 'nps' },
+        { label: 'A safe, government-backed option', calc: 'ppf' },
+      ],
+    } },
+    { label: '🧭 Just exploring — show me everything', filter: 'all' },
+  ],
+};
+
+let wizardStack = [];
+
+function initWizard() {
+  document.getElementById('wizard-trigger')?.addEventListener('click', openWizard);
+  document.getElementById('wizard-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'wizard-modal') closeWizard();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('wizard-modal')?.classList.contains('hidden')) closeWizard();
+  });
+}
+
+function openWizard() {
+  wizardStack = [WIZARD_TREE];
+  document.getElementById('wizard-modal')?.classList.remove('hidden');
+  renderWizardStep();
+}
+
+function closeWizard() {
+  document.getElementById('wizard-modal')?.classList.add('hidden');
+}
+
+function renderWizardStep() {
+  const body = document.getElementById('wizard-body');
+  if (!body) return;
+  const node = wizardStack[wizardStack.length - 1];
+  const backBtn = wizardStack.length > 1 ? '<button class="wizard-back" onclick="wizardBack()">← Back</button>' : '';
+  body.innerHTML = backBtn + `<div class="wizard-q">${node.q}</div><div class="wizard-options">` +
+    node.options.map((opt, i) => `
+      <button class="wizard-option" onclick="pickWizardOption(${i})">
+        <span>${opt.label}</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>`).join('') + '</div>';
+}
+
+function wizardBack() {
+  wizardStack.pop();
+  renderWizardStep();
+}
+
+function pickWizardOption(i) {
+  const node = wizardStack[wizardStack.length - 1];
+  const opt = node.options[i];
+  if (opt.next) { wizardStack.push(opt.next); renderWizardStep(); return; }
+  if (opt.calc) {
+    const c = CALCULATORS.find(x => x.id === opt.calc);
+    const body = document.getElementById('wizard-body');
+    body.innerHTML = `<div class="wizard-result">
+      <div class="wizard-result-icon">🎯</div>
+      <div class="wizard-q">${c ? c.name : 'This calculator'} is right for you</div>
+      <p style="color:var(--text3);font-size:0.85rem;margin-bottom:1rem">${c ? c.desc : ''}</p>
+      <button class="btn btn-primary" onclick="closeWizard();openCalc('${opt.calc}')">Open it →</button>
+    </div>`;
+  } else if (opt.filter) {
+    closeWizard();
+    filterCategory(opt.filter);
+    document.getElementById('calculators')?.scrollIntoView({ behavior: App.reducedMotion ? 'auto' : 'smooth' });
+  }
+}
+
+/* ============================================================
+   RELATED CALCULATORS RAIL
+   ============================================================ */
+function renderRelatedRail(id) {
+  const body = document.getElementById('modal-body');
+  if (!body) return;
+  body.querySelector('.related-rail')?.remove();
+  const calc = CALCULATORS.find(c => c.id === id);
+  if (!calc) return;
+  const picks = CALCULATORS.filter(c => c.id !== id && c.cat === calc.cat).slice(0, 4);
+  if (!picks.length) return;
+  const rail = document.createElement('div');
+  rail.className = 'related-rail';
+  rail.innerHTML = `<div class="related-rail-title">Related calculators</div>
+    <div class="related-rail-list">
+      ${picks.map(c => `<button class="related-chip" onclick="openCalc('${c.id}')">${getIcon(c.id, 15)}<span>${c.name}</span></button>`).join('')}
+    </div>`;
+  body.appendChild(rail);
+}
+
+/* ============================================================
+   TWO-TIER RESULT DESIGN: quick sentence + collapsible detail
+   ============================================================ */
+function updateQuickSentenceForCard(card) {
+  const labelEl = card.querySelector('.result-label');
+  const mainEl = card.querySelector('.result-main');
+  if (!labelEl || !mainEl) return;
+  const label = labelEl.textContent.trim();
+  const main = mainEl.textContent.trim();
+  if (!label || !main || main === '--') return;
+  let p = card.querySelector('.quick-sentence');
+  if (!p) {
+    p = document.createElement('p');
+    p.className = 'quick-sentence';
+    labelEl.insertAdjacentElement('afterend', p);
+  }
+  const verbHint = /\b(lasts?|wins?|is|are|saves?|better|earns?|grows?|regime)\b/i.test(label);
+  p.textContent = verbHint
+    ? `${label} — ${main}.`
+    : `Your ${label.toLowerCase()} is ${main}.`;
+}
+
+function injectQuickSentence(container) {
+  container.querySelectorAll('.result-card').forEach(updateQuickSentenceForCard);
+}
+
+function updateQuickSentence(mainEl) {
+  const card = mainEl.closest('.result-card');
+  if (card) updateQuickSentenceForCard(card);
+}
+
+/* wraps everything after the always-visible Quick Result card into a
+   collapsible "Detailed Breakdown" — charts, full explanation, and
+   amortization tables stay one tap away instead of cluttering the
+   first screen. Collapsed by default; auto-opened for PDF export. */
+function wrapDetailedBreakdown(container) {
+  container.querySelectorAll('.calc-output').forEach(output => {
+    if (output.querySelector('.detail-toggle')) return;
+    const resultCard = [...output.children].find(el => el.classList.contains('result-card'));
+    if (!resultCard) return;
+    const rest = [...output.children].filter(el => el !== resultCard);
+    if (!rest.length) return;
+    const details = document.createElement('details');
+    details.className = 'detail-toggle';
+    details.innerHTML = '<summary><span>View Detailed Breakdown</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="detail-chevron" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></summary>';
+    const contentWrap = document.createElement('div');
+    contentWrap.className = 'detail-content';
+    rest.forEach(el => contentWrap.appendChild(el));
+    details.appendChild(contentWrap);
+    output.appendChild(details);
+  });
+}
+
+/* ============================================================
+   RESULT COLOR CODING — green = savings/benefit,
+   amber = neutral/informational, red = cost/liability
+   ============================================================ */
+const RC_GREEN_KEYWORDS = ['saved', 'savings', 'gain', 'benefit', 'profit', 'growth', 'corpus', 'maturity', 'take-home', 'takehome', 'net payout', 'rebate', 'credit', 'refund', 'itc', 'better', 'wins', 'remaining', 'tax-free', 'earned', 'you save'];
+const RC_RED_KEYWORDS = ['interest paid', 'total interest', 'emi', 'tds', 'penalty', 'fee', 'due', 'liability', 'cost', 'charge', 'surcharge', 'cess', 'tax payable', 'total tax', 'tax due', 'additional fee', 'gst payable', 'tax deducted', 'outstanding'];
+
+function classifyResultLabel(label) {
+  const l = label.toLowerCase();
+  if (RC_GREEN_KEYWORDS.some(k => l.includes(k))) return 'green';
+  if (RC_RED_KEYWORDS.some(k => l.includes(k))) return 'red';
+  return 'amber';
+}
+
+function applyResultColorCoding(container) {
+  container.querySelectorAll('.result-item').forEach(item => {
+    const label = item.querySelector('.result-item-label')?.textContent || '';
+    if (!label) return;
+    item.classList.remove('rc-green', 'rc-amber', 'rc-red');
+    item.classList.add('rc-' + classifyResultLabel(label));
+  });
+}
+
+/* ============================================================
+   TOOLTIPS — plain-English explanations for technical terms,
+   sourced from the glossary, wrapped into calculator explanations
+   ============================================================ */
+const TERM_TOOLTIPS = {};
+GLOSSARY.forEach(([term, def]) => { TERM_TOOLTIPS[term.toUpperCase()] = def; });
+Object.assign(TERM_TOOLTIPS, {
+  'HUF': 'Hindu Undivided Family — a separate taxable entity under Indian tax law, often used for family tax planning.',
+  'WDV': 'Written Down Value — a depreciation method where a fixed percentage is deducted from the reducing asset balance each year.',
+  'SLM': "Straight Line Method — depreciation spread equally across an asset's useful life.",
+  'MAT': 'Minimum Alternate Tax — a floor tax companies pay even when book profits let them legally reduce tax via deductions.',
+  'LLP': "Limited Liability Partnership — a partnership where partners' personal liability is limited, like a company.",
+  'ROC': 'Registrar of Companies — the government office where companies file mandatory annual returns.',
+  'MCA': 'Ministry of Corporate Affairs — regulates company and LLP compliance in India.',
+  'AOC-4': 'The annual financial statements filing every company must submit to the ROC.',
+  'MGT-7': 'The annual return filing (company details, shareholding) every company must submit to the ROC.',
+  'RCM': 'Reverse Charge Mechanism — the buyer, not the seller, pays GST directly to the government.',
+  'HSN': 'Harmonized System of Nomenclature — the code system used to classify goods for GST rates.',
+});
+const TERM_LIST_SORTED = Object.keys(TERM_TOOLTIPS).sort((a, b) => b.length - a.length);
+
+function applyTooltips(container) {
+  const targets = container.querySelectorAll('.calc-explanation, .quick-sentence');
+  targets.forEach(el => {
+    if (!el.textContent || el.dataset.tipped) return;
+    let html = el.textContent;
+    const used = new Set();
+    TERM_LIST_SORTED.forEach(term => {
+      if (used.has(term)) return;
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`\\b${escaped}\\b`, 'i');
+      const m = html.match(re);
+      if (!m) return;
+      used.add(term);
+      const tip = TERM_TOOLTIPS[term].replace(/"/g, '&quot;');
+      html = html.replace(re, `<button type="button" class="term-tip" data-tip="${tip}">${m[0]}</button>`);
+    });
+    if (used.size) { el.innerHTML = html; el.dataset.tipped = '1'; }
+  });
 }

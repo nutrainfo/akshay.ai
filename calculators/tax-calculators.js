@@ -442,7 +442,7 @@ const TAX_CALC_DEFS = [
     },
   },
   {
-    id: 'gst-calculator', name: 'GST Calculator', cat: 'tax',
+    id: 'gst-calculator', name: 'GST Calculator', cat: 'gst',
     desc: 'Add or remove GST from an amount',
     inputs: [
       { id: 'amount', label: 'Amount (₹)', min: 1, max: 10000000, step: 1, def: 10000 },

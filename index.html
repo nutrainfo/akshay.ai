@@ -164,9 +164,6 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Install App
       </button>
-      <button class="coffee-pill coffee-pill-nav" onclick="openCoffee()" aria-label="Buy me a coffee">
-        <span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Buy me a coffee</span>
-      </button>
       <button id="theme-toggle" class="icon-btn" aria-label="Toggle light / dark theme">
         <svg id="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg id="theme-icon-sun" class="hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -199,15 +196,11 @@
     </div>
 
     <div class="hero-stats" role="list" aria-label="Platform statistics">
-      <div class="stat" role="listitem"><span class="stat-val gradient-text" data-count="130" data-suffix="+">0</span><span class="stat-label">Calculators</span></div>
-      <div class="stat" role="listitem"><span class="stat-val" data-count="14" data-suffix="">0</span><span class="stat-label">Categories</span></div>
-      <div class="stat" role="listitem"><span class="stat-val gradient-text-gold" data-count="100" data-suffix="%">0</span><span class="stat-label">Free &amp; private</span></div>
+      <div class="stat" role="listitem"><span class="stat-val gradient-text" data-count="130" data-suffix="+">130+</span><span class="stat-label">Calculators</span></div>
+      <div class="stat" role="listitem"><span class="stat-val" data-count="14" data-suffix="">14</span><span class="stat-label">Categories</span></div>
+      <div class="stat" role="listitem"><span class="stat-val gradient-text-gold" data-count="100" data-suffix="%">100%</span><span class="stat-label">Free &amp; private</span></div>
       <div class="stat" role="listitem"><span class="stat-val" data-count="0" data-suffix="">0</span><span class="stat-label">Ads. Ever.</span></div>
     </div>
-
-    <button class="coffee-pill coffee-pill-hero" onclick="openCoffee()" aria-label="Buy me a coffee">
-      <span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Enjoying it free? Buy me a coffee</span>
-    </button>
   </div>
 
   <!-- Rates marquee -->
@@ -263,6 +256,17 @@
     <span><strong>Disclaimer:</strong> This website is for informational purposes only and does not constitute financial advice. Always consult a SEBI-registered financial advisor before investing. Past performance is not indicative of future results.</span>
   </div>
 </section>
+
+<!-- ===== STICKY QUICK-FILTER BAR ===== -->
+<nav class="quickfilter-bar" id="quickfilter-bar" aria-label="Jump to a calculator category">
+  <div class="quickfilter-inner container">
+    <div class="quickfilter-chips" id="quickfilter-chips"><!-- populated by JS --></div>
+    <button class="quickfilter-wizard" id="wizard-trigger" aria-label="Not sure which calculator you need? Take a 30-second quiz">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Not sure which one? <span class="quickfilter-wizard-strong">Take the 30s quiz</span>
+    </button>
+  </div>
+</nav>
 
 <!-- ===== FINANCIAL DASHBOARD (BENTO) ===== -->
 <section id="dashboard" class="section" aria-labelledby="dash-heading">
@@ -660,22 +664,6 @@
         </div>
       </div>
 
-      <!-- Support card -->
-      <div class="bento glass glass-edge bento-static bento-accent-gold coffee-bento" style="grid-column: span 8" aria-label="Support FinCalc Pro">
-        <div class="bento-head">
-          <span class="bento-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
-            Powered by Coffee
-          </span>
-        </div>
-        <div class="play-body coffee-bento-body">
-          <p class="coffee-lead">No ads. No sign-ups. No data collection. Just 130+ free tools built with way too much caffeine. If FinCalc Pro helped you plan smarter, you can fuel the next feature:</p>
-          <button class="coffee-pill" onclick="openCoffee()">
-            <span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Buy me a coffee</span>
-          </button>
-        </div>
-      </div>
-
       <!-- 8 · Achievements + streak -->
       <div class="bento bento-full glass glass-edge bento-static" aria-label="Your achievements">
         <div class="bento-head">
@@ -721,6 +709,7 @@
         <button class="filter-btn" data-filter="investment">Investment</button>
         <button class="filter-btn" data-filter="loan">Loans</button>
         <button class="filter-btn" data-filter="tax">Tax</button>
+        <button class="filter-btn" data-filter="gst">GST</button>
         <button class="filter-btn" data-filter="savings">Savings</button>
         <button class="filter-btn" data-filter="retirement">Retirement</button>
         <button class="filter-btn" data-filter="business">Business</button>
@@ -903,9 +892,6 @@
     </div>
     <div class="footer-bottom">
       <p>© 2026 FinCalc Pro. All rights reserved. | Informational purposes only.</p>
-      <button class="coffee-pill coffee-pill-sm" onclick="openCoffee()">
-        <span class="coffee-emoji" aria-hidden="true">☕</span><span class="coffee-pill-text">Buy me a coffee</span>
-      </button>
       <p>100% free. No ads. No sign-up required.</p>
     </div>
   </div>
@@ -999,9 +985,6 @@
           Share
         </button>
         </div>
-        <button class="icon-btn modal-tool coffee-tool" onclick="openCoffee()" aria-label="Buy me a coffee" title="Enjoying this? Buy me a coffee">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
-        </button>
         <button class="modal-close" aria-label="Close calculator" id="modal-close">✕</button>
       </div>
     </div>
@@ -1053,6 +1036,18 @@
   </div>
 </div>
 
+<!-- ===== WHICH CALCULATOR WIZARD ===== -->
+<div id="wizard-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-label="Which calculator do I need">
+  <div class="palette wizard-panel">
+    <div class="palette-input-row">
+      <span aria-hidden="true">🧭</span>
+      <strong style="font-family:var(--font-head);font-size:1rem;color:var(--text)">Which calculator do I need?</strong>
+      <button class="modal-close" style="margin-left:auto" aria-label="Close" onclick="closeWizard()">✕</button>
+    </div>
+    <div class="wizard-body" id="wizard-body"><!-- populated by JS --></div>
+  </div>
+</div>
+
 <!-- ===== KEYBOARD SHORTCUTS (press ?) ===== -->
 <div id="shortcuts-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
   <div class="palette shortcuts-panel">
@@ -1072,10 +1067,6 @@
   </div>
 </div>
 
-<!-- ===== BUY ME A COFFEE ===== -->
-<button id="coffee-fab" class="coffee-fab" onclick="openCoffee()" aria-label="Buy me a coffee" title="Buy me a coffee">
-  <span class="coffee-emoji" aria-hidden="true">☕</span>
-</button>
 
 <div id="coffee-modal" class="palette-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="coffee-title">
   <div class="palette coffee-panel glass-edge">
